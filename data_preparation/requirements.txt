@@ -1,0 +1,8 @@
+# Data Ingestion Dependencies
+huggingface-hub>=0.20.0
+boto3>=1.34.0
+python-dotenv>=1.0.0
+
+# Optional: For progress bars
+tqdm>=4.66.0
+

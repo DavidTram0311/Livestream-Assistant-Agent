@@ -1,0 +1,11 @@
+.env
+amazon_metadata_2023/
+*.jsonl
+*.json
+*.csv
+
+__pycache__/
+
+.DS_Store
+.idea/
+.pytest_cache/
