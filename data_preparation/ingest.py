@@ -1,13 +1,12 @@
 """
 Data Ingestion Script for Amazon Metadata 2023
-Downloads data from HuggingFace and uploads to S3 with minimal disk usage.
+Downloads public Google Drive files and optionally uploads to S3.
 
 Usage:
-    python ingest.py --mode s3                          # Download and upload to S3 (default)
-    python ingest.py --mode local                       # Download to local only
-    python ingest.py --mode s3 --file-type reviews      # Process review files instead of metadata
-    python ingest.py --mode s3 --skip-delete            # Keep local files after upload
-    python ingest.py --mode s3 --files meta_A.jsonl ... # Process only selected files
+    python ingest.py --mode s3 --files <gdrive_url ...>       # Download and upload to S3 (default)
+    python ingest.py --mode local --files <gdrive_url ...>    # Download to local only
+    python ingest.py --mode s3 --file-type reviews --files ...# Tag files as reviews for S3 prefixing
+    python ingest.py --mode s3 --skip-delete --files ...      # Keep local files after upload
 """
 
 import os
@@ -18,9 +17,8 @@ from pathlib import Path
 from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
-from huggingface_hub import hf_hub_download
 from dotenv import load_dotenv
-from data_preparation.meta_files import ALL_META_FILES, ALL_REVIEWS_FILES
+from data_preparation.download_file import download_google_drive_file
 
 # Load environment variables
 load_dotenv()
@@ -36,14 +34,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Dataset configuration
-HUGGINGFACE_REPO = "McAuley-Lab/Amazon-Reviews-2023"
-HUGGINGFACE_REPO_TYPE = "dataset"
-HUGGINGFACE_BASE_PATH = {
-    "meta": "raw/meta_categories",
-    "reviews": "raw/reviews"
-}
-
 class DataIngestionConfig:
     """Configuration for data ingestion"""
     
@@ -51,8 +41,8 @@ class DataIngestionConfig:
         self.aws_bucket_name = os.getenv("AWS_BUCKET_NAME")
         self.aws_profile_name = os.getenv("AWS_PROFILE_NAME", "default")
         self.aws_region = os.getenv("AWS_REGION", "ap-northeast-1")
-        self.local_data_dir = os.getenv("LOCAL_DATA_DIR", "amazon_metadata_2023/raw")
-        self.s3_prefix = os.getenv("S3_PREFIX", "amazon_metadata_2023/raw")
+        self.local_data_dir = os.getenv("LOCAL_DATA_DIR", "amazon_product_data_2014/raw")
+        self.s3_prefix = os.getenv("S3_PREFIX", "amazon_product_data_2014/raw")
         
     def validate(self, mode: str) -> bool:
         """Validate configuration based on mode"""
@@ -100,32 +90,31 @@ class DataIngestor:
                 logger.error(f"❌ Error connecting to S3: {e}")
             raise
     
-    def download_file(self, meta_file: str, file_type: str = "meta") -> Optional[str]:
+    def download_file(self, file_url: str, file_type: str = "meta") -> Optional[str]:
         """
-        Download a single file from HuggingFace
+        Download a single file from Google Drive
         
         Args:
-            meta_file: Name of the metadata file to download
+            file_url: Public Google Drive URL to download
             
         Returns:
             Path to downloaded file or None if failed
         """
         try:
-            logger.info(f"📥 Downloading {meta_file}...")
-            file_path = hf_hub_download(
-                repo_id=HUGGINGFACE_REPO,
-                repo_type=HUGGINGFACE_REPO_TYPE,
-                filename=f"{HUGGINGFACE_BASE_PATH[file_type.lower()]}/{meta_file}",
-                local_dir=f"{self.config.local_data_dir}/{file_type.lower()}",
+            output_dir = f"{self.config.local_data_dir}/{file_type.lower()}"
+            logger.info(f"📥 Downloading from {file_url} to {output_dir} ...")
+            file_path = download_google_drive_file(
+                url=file_url,
+                output_dir=output_dir,
             )
             
             # Get file size
             file_size = os.path.getsize(file_path) / (1024 * 1024)  # MB
-            logger.info(f"✅ Downloaded {meta_file} ({file_size:.2f} MB)")
+            logger.info(f"✅ Downloaded {Path(file_path).name} ({file_size:.2f} MB)")
             return file_path
             
         except Exception as e:
-            logger.error(f"❌ Failed to download {meta_file}: {e}")
+            logger.error(f"❌ Failed to download from {file_url}: {e}")
             return None
     
     def upload_to_s3(self, file_path: str, file_type: str = "meta") -> bool:
@@ -182,19 +171,19 @@ class DataIngestor:
             logger.error(f"❌ Failed to delete {file_type.upper()} {os.path.basename(file_path)} file: {file_path}: {e}")
             return False
     
-    def process_file(self, meta_file: str, delete_after_upload: bool = True, file_type: str = "meta") -> bool:
+    def process_file(self, file_url: str, delete_after_upload: bool = True, file_type: str = "meta") -> bool:
         """
         Process a single file: download, upload to S3, and optionally delete
         
         Args:
-            meta_file: Name of the metadata file
+            file_url: Public Google Drive URL to download
             delete_after_upload: Whether to delete local file after S3 upload
             file_type: Type of file to process (meta or reviews)
         Returns:
             True if successful, False otherwise
         """
         # Download
-        file_path = self.download_file(meta_file, file_type)
+        file_path = self.download_file(file_url, file_type)
         if not file_path:
             return False
         
@@ -235,18 +224,18 @@ class DataIngestor:
         
         logger.info(f"🚀 Starting ingestion of {stats['total']} files in '{self.mode}' mode")
         
-        for idx, meta_file in enumerate(files, 1):
+        for idx, file_url in enumerate(files, 1):
             logger.info(f"\n{'='*60}")
-            logger.info(f"Processing file {idx}/{stats['total']}: {meta_file}")
+            logger.info(f"Processing file {idx}/{stats['total']}: {file_url}")
             logger.info(f"{'='*60}")
             
-            success = self.process_file(meta_file, delete_after_upload, file_type)
+            success = self.process_file(file_url, delete_after_upload, file_type)
             
             if success:
                 stats["success"] += 1
             else:
                 stats["failed"] += 1
-                stats["failed_files"].append(meta_file)
+                stats["failed_files"].append(file_url)
         
         # Print summary
         logger.info(f"\n{'='*60}")
@@ -265,24 +254,21 @@ class DataIngestor:
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="Ingest Amazon Metadata 2023 from HuggingFace to S3/Local",
+        description="Ingest Amazon Product Data 2014 from Google Drive to S3/Local",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Download and upload to S3 (default)
-  python ingest.py --mode s3
+  python ingest.py --mode s3 --files https://drive.google.com/file/d/<ID>/view
   
   # Download to local only
-  python ingest.py --mode local
+  python ingest.py --mode local --files https://drive.google.com/file/d/<ID>/view
   
   # Process review files instead of metadata
-  python ingest.py --mode s3 --file-type reviews
+  python ingest.py --mode s3 --file-type reviews --files https://drive.google.com/file/d/<ID>/view
   
   # Keep local files after upload
-  python ingest.py --mode s3 --skip-delete
-  
-  # Process specific files
-  python ingest.py --mode s3 --files meta_Electronics.jsonl meta_Books.jsonl
+  python ingest.py --mode s3 --skip-delete --files https://drive.google.com/file/d/<ID>/view
         """
     )
     
@@ -302,7 +288,8 @@ Examples:
     parser.add_argument(
         "--files",
         nargs="+",
-        help="Specific files to process (space-separated)"
+        required=True,
+        help="Public Google Drive file URLs to process (space-separated)"
     )
 
     parser.add_argument(
@@ -322,13 +309,9 @@ Examples:
         logger.error("Configuration validation failed. Please check your .env file.")
         sys.exit(1)
     
-    # Determine which files to process
-    if args.files:
-        files_to_process = args.files
-        logger.info(f"Processing {len(files_to_process)} specified files")
-    else:
-        files_to_process = ALL_META_FILES if args.file_type == "meta" else ALL_REVIEWS_FILES
-        logger.info(f"Processing all {len(files_to_process)} categories")
+    # Determine which files to process (Google Drive URLs are required)
+    files_to_process = args.files
+    logger.info(f"Processing {len(files_to_process)} specified Google Drive URLs")
     
     # Initialize ingestor
     try:
