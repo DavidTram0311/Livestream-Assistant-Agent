@@ -2,7 +2,9 @@
 huggingface-hub>=0.20.0
 boto3>=1.34.0
 python-dotenv>=1.0.0
-
-# Optional: For progress bars
 tqdm>=4.66.0
+pyspark==3.3.1
+spark-nlp==6.2.3
+gdown==5.2.0
+
 
