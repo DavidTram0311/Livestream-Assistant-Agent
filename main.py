@@ -1,5 +1,5 @@
 def main():
-    print("Hello from livestream-assistant-agent!")
+    print("Hello from Livestream Assistant Agent!")
 
 
 if __name__ == "__main__":
