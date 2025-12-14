@@ -6,5 +6,7 @@ tqdm>=4.66.0
 pyspark==3.3.1
 spark-nlp==6.2.3
 gdown==5.2.0
+ipykernel==7.1.0
+duckdb==1.4.3
 
 
