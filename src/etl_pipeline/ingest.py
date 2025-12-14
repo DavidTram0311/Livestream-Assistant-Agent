@@ -18,7 +18,7 @@ from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from dotenv import load_dotenv
-from data_preparation.download_file import download_google_drive_file
+from download_file import download_google_drive_file
 
 # Load environment variables
 load_dotenv()
@@ -249,89 +249,4 @@ class DataIngestor:
             logger.warning(f"Failed {file_type.upper()} files: {', '.join(stats['failed_files'])}")
         
         return stats
-
-
-def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser(
-        description="Ingest Amazon Product Data 2014 from Google Drive to S3/Local",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Download and upload to S3 (default)
-  python ingest.py --mode s3 --files https://drive.google.com/file/d/<ID>/view
-  
-  # Download to local only
-  python ingest.py --mode local --files https://drive.google.com/file/d/<ID>/view
-  
-  # Process review files instead of metadata
-  python ingest.py --mode s3 --file-type reviews --files https://drive.google.com/file/d/<ID>/view
-  
-  # Keep local files after upload
-  python ingest.py --mode s3 --skip-delete --files https://drive.google.com/file/d/<ID>/view
-        """
-    )
-    
-    parser.add_argument(
-        "--mode",
-        choices=["s3", "local"],
-        default="s3",
-        help="Ingestion mode: 's3' uploads to S3, 'local' downloads only"
-    )
-    
-    parser.add_argument(
-        "--skip-delete",
-        action="store_true",
-        help="Keep local files after uploading to S3"
-    )
-    
-    parser.add_argument(
-        "--files",
-        nargs="+",
-        required=True,
-        help="Public Google Drive file URLs to process (space-separated)"
-    )
-
-    parser.add_argument(
-        "--file-type",
-        choices=["meta", "reviews"],
-        default="meta",
-        help="Type of file to process (meta or reviews)"
-    )
-    
-    args = parser.parse_args()
-    
-    # Initialize configuration
-    config = DataIngestionConfig()
-    
-    # Validate configuration
-    if not config.validate(args.mode):
-        logger.error("Configuration validation failed. Please check your .env file.")
-        sys.exit(1)
-    
-    # Determine which files to process (Google Drive URLs are required)
-    files_to_process = args.files
-    logger.info(f"Processing {len(files_to_process)} specified Google Drive URLs")
-    
-    # Initialize ingestor
-    try:
-        ingestor = DataIngestor(config, mode=args.mode)
-    except Exception as e:
-        logger.error(f"Failed to initialize ingestor: {e}")
-        sys.exit(1)
-    
-    # Run ingestion
-    delete_after_upload = not args.skip_delete
-    stats = ingestor.ingest_all(files_to_process, delete_after_upload, file_type=args.file_type)
-    
-    # Exit with appropriate code
-    if stats["failed"] > 0:
-        sys.exit(1)
-    else:
-        logger.info("\n🎉 All files processed successfully!")
-        sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
 

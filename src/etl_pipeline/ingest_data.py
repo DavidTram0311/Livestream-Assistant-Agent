@@ -20,7 +20,7 @@ Environment Variables (via .env file):
 import argparse
 import sys
 
-from data_preparation.ingest import DataIngestionConfig, DataIngestor, logger as ingest_logger
+from ingest import DataIngestionConfig, DataIngestor, logger as ingest_logger
 
 
 def parse_args(argv=None):

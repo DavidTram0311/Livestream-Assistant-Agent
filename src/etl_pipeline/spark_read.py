@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 from dotenv import load_dotenv
 import os, sys
 import boto3
+from spark_connector import SparkS3Connector
 
 load_dotenv()
 

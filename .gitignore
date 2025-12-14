@@ -1,5 +1,5 @@
 .env
-amazon_metadata_2023/
+amazon_metadata_2014/
 *.jsonl
 *.json
 *.csv
@@ -11,3 +11,5 @@ __pycache__/
 .pytest_cache/
 
 dataset/
+
+data_preparation/
