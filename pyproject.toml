@@ -10,6 +10,8 @@ dependencies = [
     "gdown==5.2.0",
     "huggingface-hub>=0.20.0",
     "ipykernel==7.1.0",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
     "pyspark==3.3.1",
     "python-dotenv>=1.0.0",
     "spark-nlp==6.2.3",

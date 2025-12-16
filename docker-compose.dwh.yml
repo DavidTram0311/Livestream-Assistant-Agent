@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   postgres-dwh:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: postgres-dwh
     environment:
-      POSTGRES_DB: $(POSTGRES_DB:-dwh)
-      POSTGRES_USER: $(POSTGRES_USER:-dwh)
-      POSTGRES_PASSWORD: $(POSTGRES_PASSWORD:-dwh)
+      POSTGRES_DB: ${POSTGRES_DB:-dwh}
+      POSTGRES_USER: ${POSTGRES_USER:-dwh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dwh}
     ports:
       - 5432:5432
     volumes:
@@ -24,7 +24,7 @@ services:
 
 volumes:
   postgres-dwh-volume:
-    driver: $(DRIVER:-local)
+    driver: ${DRIVER:-local}
 
 networks:
   mlops-k6-network:
