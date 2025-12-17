@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  kafka-connect:
+    image: debezium/connect:latest
+    ports:
+      - "8083:8083"
+    depends_on:
+      cdc-postgresql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD", 
+          "curl", 
+          "--silent", 
+          "--fail", 
+          "-X", 
+          "GET",
+          "http://localhost:8083/connectors",
+        ]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      BOOTSTRAP_SERVERS: kafka-single:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs 
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      # Force replication factor to 1 for single node Kafka
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONNECT_TOPIC_CREATION_ENABLE: true
+    networks:
+      - mlops-k6-network
+
+  # Debzium UI
+  debezium-ui:
+    image: debezium/debezium-ui:latest
+    container_name: debezium-ui
+    hostname: debezium-ui
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      KAFKA_CONNECT_URL: http://kafka-connect:8083
+    networks:
+      - mlops-k6-network
+
+  # CDC PostgreSQL
+  cdc-postgresql:
+    # Set wal_level from replica (default) to logical
+    # so that Debezium can capture change
+    image: postgres:15-alpine
+    container_name: cdc-postgresql
+    command: ["postgres", "-c", "wal_level=logical"]
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cdc
+      - POSTGRES_USER=cdc
+      - POSTGRES_PASSWORD=cdc
+    volumes:
+      - cdc_postgresql_data:/var/lib/postgresql/data
+    networks:
+      - mlops-k6-network
+
+  cdc-python:
+    build:
+      context: ./src/cdc
+      dockerfile: dockerfile
+    container_name: cdc-python
+    depends_on:
+      cdc-postgresql:
+        condition: service_healthy
+      kafka-connect:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - mlops-k6-network
+
+volumes:
+  cdc_postgresql_data:
+
+networks:
+  mlops-k6-network:
+    external: true    
