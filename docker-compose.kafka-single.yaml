@@ -23,7 +23,7 @@ services:
       # Controller Quorum Configuration (Raft)
       ############################################
       # List of controller nodes that form the Raft quorum
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-single:9093'
       # Listener name used by controllers for internal Raft communication
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
 
@@ -40,7 +40,7 @@ services:
       # Internal (Docker containers): kafka:9092
       # External (host machine): localhost:9094
       KAFKA_ADVERTISED_LISTENERS: >
-        PLAINTEXT://kafka:9092,
+        PLAINTEXT://kafka-single:9092,
         EXTERNAL://localhost:9094
 
       # Maps listener names to their security protocols
@@ -94,7 +94,7 @@ services:
       - kafka-single
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092  # Use internal Docker network name
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-single:9092  # Use internal Docker network name
       DYNAMIC_CONFIG_ENABLED: 'true'
     restart: unless-stopped
     networks:
