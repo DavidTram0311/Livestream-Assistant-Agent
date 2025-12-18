@@ -95,10 +95,40 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-single:9092  # Use internal Docker network name
+      KAFKA_CLUSTERS_0_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       DYNAMIC_CONFIG_ENABLED: 'true'
     restart: unless-stopped
     networks:
       - mlops-k6-network
+
+  # For managing Avro schemas
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: kafka-schema-registry
+    depends_on:
+      - kafka-single
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--silent",
+          "--fail",
+          "http://localhost:8081/subjects"
+        ]
+      start_period: 10s
+      interval: 10s
+      retries: 20
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-single:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    restart: unless-stopped
+    networks:
+      - mlops-k6-network
+
 
 networks:
   mlops-k6-network:

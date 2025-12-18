@@ -1,0 +1,9 @@
+python-dotenv>=1.0.0
+confluent-kafka==2.12.2
+pyarrow==8.0.0
+pandas>=2.3.3
+numpy>=2.2.6
+attrs==25.4.0
+cachetools==6.2.4
+authlib==1.6.6
+fastavro==1.12.1
