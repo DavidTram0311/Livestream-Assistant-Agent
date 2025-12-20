@@ -24,15 +24,15 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      BOOTSTRAP_SERVERS: kafka-single:9092
+      BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
       GROUP_ID: 1
       CONFIG_STORAGE_TOPIC: connect-configs 
       OFFSET_STORAGE_TOPIC: connect-offsets
       STATUS_STORAGE_TOPIC: connect-status
-      # Force replication factor to 1 for single node Kafka
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      # Force replication factor to 3 for cluster nodes Kafka
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
       KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
       VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
       # KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
