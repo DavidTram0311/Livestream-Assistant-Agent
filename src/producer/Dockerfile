@@ -1,5 +1,5 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_bin
-FROM python3.10-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -12,11 +12,13 @@ COPY ./requirements.txt /app/requirements.txt
 # 3. Install dependencies using uv
 # --system tells uv to install into the global site-packages
 # --frozen ensures your versions stay exact
-RUN uv pip install --system -r requirements.txt
+RUN uv pip install --system --no--cache -r requirements.txt
+
+RUN mkdir -p /app/data /app/avro_schemas
 
 # 4. Copy the rest of your app
 COPY ./produce.py /app/produce.py
 COPY ./avro_schemas /app/avro_schemas
 COPY ./data/user_comments.parquet /app/data/user_comments.parquet
 
-CMD [ "python", "-u", "produce.py", "--mode", "setup", "--bootstrap_servers", "kafka-single:9092"]
+CMD [ "python", "-u", "produce.py", "--mode", "setup"]

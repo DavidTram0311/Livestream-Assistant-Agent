@@ -28,6 +28,7 @@ services:
           "CMD-SHELL",
           "./opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1",
         ]
+      start_period: 20s
       interval: 10s
       timeout: 10s
       retries: 5
@@ -63,6 +64,7 @@ services:
           "CMD-SHELL",
           "./opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1",
         ]
+      start_period: 20s
       interval: 10s
       timeout: 10s
       retries: 5
@@ -98,6 +100,7 @@ services:
           "CMD-SHELL",
           "./opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1",
         ]
+      start_period: 20s
       interval: 10s
       timeout: 10s
       retries: 5
@@ -147,6 +150,22 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     restart: unless-stopped
+    networks:
+      - mlops-k6-network
+
+  # Producer
+  kafka_producer:
+    container_name: kafka-producer
+    build:
+      context: ./src/producer
+      dockerfile: Dockerfile
+    env_file:
+      - ./src/producer/.env
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - schema-registry
     networks:
       - mlops-k6-network
 
