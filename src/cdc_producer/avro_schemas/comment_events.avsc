@@ -13,7 +13,7 @@
       "name": "reviewText",
       "type": "string",
       "doc": "The full text content of the review"
-    },
+    }
     {
         "name": "comment_time",
         "type": "long",
