@@ -18,7 +18,7 @@ KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
 SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_SERVER")
 TOPIC_NAME = os.getenv("KAFKA_OUTPUT_TOPICS")
 AVRO_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "avro_schemas", "comment_events.avsc")
-REVIEW_PARQUET_PATH = os.path.join(os.path.dirname(__file__), "data", "user_table.parquet")
+REVIEW_PARQUET_PATH = os.path.join(os.path.dirname(__file__), "data", "user_comments.parquet")
 
 
 parser = argparse.ArgumentParser()
@@ -65,14 +65,18 @@ def produce_comment_events(
     replication_factor: int
 ):
     # Initialize Schema Registry Client
-    # Retry 10 times with a 1 second delay
-    for _ in range(10):
+    # Retry 20 times with a 2 second delay
+    for _ in range(20):
         try:
             schema_registry_client = SchemaRegistryClient({"url": schema_registry_url})
+
+            # Test connection by fetching subjects
+            schema_registry_client.get_subjects()
+            logging.info("Schema Registry Client initialized successfully")
             break
         except Exception as e:
-            logging.error(f"Error initializing Schema Registry Client: {e}")
-            time.sleep(1)
+            logging.error(f"Attempt {_ + 1} failed: Error initializing Schema Registry Client: {e}")
+            time.sleep(2)
     else:
         raise Exception("Failed to initialize Schema Registry Client")
 

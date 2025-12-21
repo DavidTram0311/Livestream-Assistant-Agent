@@ -12,7 +12,7 @@ COPY ./requirements.txt /app/requirements.txt
 # 3. Install dependencies using uv
 # --system tells uv to install into the global site-packages
 # --frozen ensures your versions stay exact
-RUN uv pip install --system --no--cache -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 RUN mkdir -p /app/data /app/avro_schemas
 

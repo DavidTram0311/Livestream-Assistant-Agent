@@ -162,10 +162,16 @@ services:
     env_file:
       - ./src/producer/.env
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
-      - schema-registry
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+      kafka-3:
+        condition: service_started
+      schema-registry:
+        condition: service_healthy
+      kafka-ui:
+        condition: service_started
     networks:
       - mlops-k6-network
 
