@@ -3,6 +3,7 @@ services:
     image: apache/kafka:latest
     hostname: kafka-1
     container_name: kafka-kraft-1
+    restart: always
     ports:
       - "19092:9092"
     environment:
@@ -39,6 +40,7 @@ services:
     image: apache/kafka:latest
     hostname: kafka-2
     container_name: kafka-kraft-2
+    restart: always
     ports:
       - "29092:9092"
     environment:
@@ -75,6 +77,7 @@ services:
     image: apache/kafka:latest
     hostname: kafka-3
     container_name: kafka-kraft-3
+    restart: always
     ports:
       - "39092:9092"
     environment:

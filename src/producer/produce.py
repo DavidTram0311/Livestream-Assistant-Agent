@@ -92,6 +92,9 @@ def produce_comment_events(
                 "bootstrap.servers": kafka_bootstrap,
                 "key.serializer": StringSerializer("utf_8"),
                 "value.serializer": avro_serializer,
+                "acks": "all", # Ensure all replicas receive data
+                "retries": 10, # Retry sending if a broker is temporarily down
+                "retry.backoff.ms": 500, # Wait 500ms before retrying
             }
             producer = SerializingProducer(producer_conf)
             logging.info("Producer initialized successfully")
@@ -127,12 +130,20 @@ def produce_comment_events(
                     "comment_time": int(time.time() * 1000) # Current timestamp in milliseconds
                 }
 
-                producer.produce(
-                    topic=topic_name,
-                    key=record["reviewerID"],
-                    value=record,
-                    on_delivery=delivery_report
-                )
+                while True:
+                    try:
+                        producer.produce(
+                            topic=topic_name,
+                            key=record["reviewerID"],
+                            value=record,
+                            on_delivery=delivery_report
+                        )
+                        break
+                    except BufferError:
+                        logging.warning("Local queue full, waiting...")
+                        producer.poll(1)
+
+                # Poll the producer to handle any delivery reports
                 producer.poll(0)
                 
         logging.info("All records sent successfully")
