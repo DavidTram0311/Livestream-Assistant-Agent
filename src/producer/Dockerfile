@@ -21,4 +21,4 @@ COPY ./produce.py /app/produce.py
 COPY ./avro_schemas /app/avro_schemas
 COPY ./data/user_comments.parquet /app/data/user_comments.parquet
 
-CMD [ "python", "-u", "produce.py", "--mode", "setup"]
+CMD [ "python", "-u", "produce.py", "--mode", "setup", "--type", "containers"]

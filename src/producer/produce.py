@@ -9,12 +9,12 @@ import os
 import logging
 import pandas as pd
 import argparse
-import json
 import pyarrow.parquet as pq
 load_dotenv()
 
 # Configuration
-KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+KAFKA_BOOTSTRAP_CONTAINERS = os.getenv("KAFKA_BOOTSTRAP_CONTAINERS")
+KAFKA_BOOTSTRAP_LOCAL = os.getenv("KAFKA_BOOTSTRAP_LOCAL")
 SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_SERVER")
 TOPIC_NAME = os.getenv("KAFKA_OUTPUT_TOPICS")
 AVRO_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "avro_schemas", "comment_events.avsc")
@@ -28,6 +28,14 @@ parser.add_argument(
     default="setup",
     choices=["setup", "teardown"],
     help="Whether to setup or teardown a Kafka topic with comment events. Setup will teardown before beginning emitting events."
+)
+
+parser.add_argument(
+    "-t",
+    "--type",
+    default="local",
+    choices=["local", "containers"],
+    help="The type of Kafka bootstrap servers to use. Defaults to local."
 )
 
 def create_topic(topic_name: str, num_partitions: int, replication_factor: int, kafka_bootstrap: str):
@@ -157,17 +165,21 @@ def produce_comment_events(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = parser.parse_args()
+    kafka_type = args.type
+    kafka_bootstrap = KAFKA_BOOTSTRAP_LOCAL if kafka_type == "local" else KAFKA_BOOTSTRAP_CONTAINERS
 
     if args.mode == "setup":
         # Teardown first if setup is specified
         teardown_topic(
             topic_name=TOPIC_NAME, 
-            kafka_bootstrap=KAFKA_BOOTSTRAP
+            kafka_bootstrap=kafka_bootstrap
             )
+
+        time.sleep(5)
         produce_comment_events(
             avro_schema_path=AVRO_SCHEMA_PATH, 
             schema_registry_url=SCHEMA_REGISTRY_URL, 
-            kafka_bootstrap=KAFKA_BOOTSTRAP, 
+            kafka_bootstrap=kafka_bootstrap, 
             review_parquet_path=REVIEW_PARQUET_PATH, 
             topic_name=TOPIC_NAME, 
             num_partitions=5, 
@@ -176,5 +188,5 @@ if __name__ == "__main__":
     elif args.mode == "teardown":
         teardown_topic(
             topic_name=TOPIC_NAME, 
-            kafka_bootstrap=KAFKA_BOOTSTRAP
+            kafka_bootstrap=kafka_bootstrap
             )

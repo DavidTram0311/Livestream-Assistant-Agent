@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  # Producer
+  kafka_producer:
+    container_name: kafka-producer
+    build:
+      context: ./src/producer
+      dockerfile: Dockerfile
+    env_file:
+      - ./src/producer/.env
+    networks:
+      - mlops-k6-network
+
+networks:
+  mlops-k6-network:
+    external: true

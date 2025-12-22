@@ -156,28 +156,6 @@ services:
     networks:
       - mlops-k6-network
 
-  # Producer
-  kafka_producer:
-    container_name: kafka-producer
-    build:
-      context: ./src/producer
-      dockerfile: Dockerfile
-    env_file:
-      - ./src/producer/.env
-    depends_on:
-      kafka-1:
-        condition: service_started
-      kafka-2:
-        condition: service_started
-      kafka-3:
-        condition: service_started
-      schema-registry:
-        condition: service_healthy
-      kafka-ui:
-        condition: service_started
-    networks:
-      - mlops-k6-network
-
 volumes:
   kafka-data-1:
   kafka-data-2:
