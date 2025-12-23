@@ -61,14 +61,14 @@ def produce_event(review_parquet_path: str, batch_size: int):
         parquet_file = pq.ParquetFile(review_parquet_path)
         total_processed = 0
 
-        # Random batch size between 1 and 20
-        batch_size = random.randint(1, batch_size)
-
         for batch in parquet_file.iter_batches(batch_size=batch_size):
             records = []
             batch_df = batch.to_pandas()
 
-            for index, row in batch_df.iterrows(): 
+            print(f"Batch length: {len(batch_df)}")
+
+            for index, row in batch_df.iterrows():
+                random_stop = random.randint(1, batch_size)
                 record = format_event(
                     {
                         "user_id": row["reviewerID"],
@@ -77,6 +77,9 @@ def produce_event(review_parquet_path: str, batch_size: int):
                 )
                 records.append(record)
                 total_processed += 1
+
+                if random_stop == index:
+                    break
 
             try:
                 session.bulk_save_objects(records)
