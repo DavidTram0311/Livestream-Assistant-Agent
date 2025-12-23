@@ -5,19 +5,27 @@
   "type": "record",
   "fields": [
     {
-      "name": "reviewerID",
+      "name": "comment_id",
+      "type": "long",
+      "doc": "Unique comment ID of the comment"
+    },
+    {
+      "name": "user_id",
       "type": "string",
       "doc": "Unique ID of the reviewer"
     },
     {
-      "name": "reviewText",
+      "name": "comments",
       "type": "string",
       "doc": "The full text content of the review"
-    }
+    },
     {
-        "name": "comment_time",
+      "name": "event_timestamp",
+      "type": {
         "type": "long",
-        "doc": "The time user comment"
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "The time user comment"
     }
   ]
 }

@@ -1,11 +1,13 @@
 from .base import Base
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, String, BigInteger, text
+import time
 
 class Event(Base):
     __tablename__ = "comment_events"
     comment_id = Column(
-        Integer,
-        primary_key=True
+        BigInteger,
+        primary_key=True,
+        autoincrement=True
     )
     user_id = Column(
         String,
@@ -16,8 +18,8 @@ class Event(Base):
         nullable=False
     )
     event_timestamp = Column(
-        DateTime(timezone=True),
+        BigInteger,
         nullable=False,
-        server_default=func.timezone("UTC", func.current_timestamp()),
+        server_default=text("(EXTRACT(EPOCH FROM now()) * 1000)::bigint")
     )
 

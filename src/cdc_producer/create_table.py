@@ -6,6 +6,11 @@ from db.postgres_client import PostgresSQLClient
 
 load_dotenv()
 
+# ADD THIS: Configure logging to show INFO level messages
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def main():
     logging.info("Initializing PostgreSQL client")
