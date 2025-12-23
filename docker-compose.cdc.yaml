@@ -2,7 +2,11 @@ version: '3.8'
 
 services:
   kafka-connect:
-    image: debezium/connect:latest
+    build:
+      context: ./src/kafka_connect
+      dockerfile: Dockerfile
+    env_file:
+      - ./src/cdc_producer/.env
     ports:
       - "8083:8083"
     depends_on:
@@ -45,7 +49,8 @@ services:
 
   # Debzium UI
   debezium-ui:
-    image: debezium/debezium-ui:latest
+    image: debezium/debezium-ui:1.9
+    platform: linux/amd64
     container_name: debezium-ui
     hostname: debezium-ui
     depends_on:
@@ -54,7 +59,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      KAFKA_CONNECT_URL: http://kafka-connect:8083
+      KAFKA_CONNECT_URIS: http://kafka-connect:8083
     networks:
       - mlops-k6-network
 
@@ -71,6 +76,12 @@ services:
       - POSTGRES_DB=cdc
       - POSTGRES_USER=cdc
       - POSTGRES_PASSWORD=cdc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdc"]
+      start_period: 5s
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - cdc_postgresql_data:/var/lib/postgresql/data
     networks:
@@ -78,16 +89,16 @@ services:
 
   cdc-python:
     build:
-      context: ./src/cdc
-      dockerfile: dockerfile
-    container_name: cdc-python
+      context: ./src/cdc_producer
+      dockerfile: Dockerfile
+    container_name: cdc-producer
     depends_on:
       cdc-postgresql:
         condition: service_healthy
       kafka-connect:
         condition: service_healthy
     env_file:
-      - .env
+      - ./src/cdc_producer/.env
     volumes:
       - ./data:/app/data
     networks:

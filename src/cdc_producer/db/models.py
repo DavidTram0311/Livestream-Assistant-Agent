@@ -1,5 +1,5 @@
 from .base import Base
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, DateTime, func
 
 class Event(Base):
     __tablename__ = "comment_events"
