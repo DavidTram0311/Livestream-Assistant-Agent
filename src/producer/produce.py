@@ -127,22 +127,24 @@ def produce_comment_events(
     try:
         parquet_file = pq.ParquetFile(review_parquet_path)
         logging.info("Starting to send records...")
-
+        comment_id = 0
         for batch in parquet_file.iter_batches(batch_size=1000):
             batch_df = batch.to_pandas()
 
             for index, row in batch_df.iterrows():
+                comment_id += 1
                 record = {
-                    "reviewerID": str(row.reviewerID),
-                    "reviewText": str(row.reviewText),
-                    "comment_time": int(time.time() * 1000) # Current timestamp in milliseconds
+                    "comment_id": int(comment_id),
+                    "user_id": str(row.reviewerID),
+                    "comments": str(row.reviewText),
+                    "event_timestamp": int(time.time() * 1000) # Current timestamp in milliseconds
                 }
 
                 while True:
                     try:
                         producer.produce(
                             topic=topic_name,
-                            key=record["reviewerID"],
+                            key=record["user_id"],
                             value=record,
                             on_delivery=delivery_report
                         )

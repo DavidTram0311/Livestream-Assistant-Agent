@@ -44,6 +44,7 @@ services:
       CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONNECT_TOPIC_CREATION_ENABLE: true
+    restart: always
     networks:
       - mlops-k6-network
 
@@ -53,6 +54,7 @@ services:
     platform: linux/amd64
     container_name: debezium-ui
     hostname: debezium-ui
+    restart: always
     depends_on:
       kafka-connect:
         condition: service_healthy
@@ -72,6 +74,7 @@ services:
     command: ["postgres", "-c", "wal_level=logical"]
     ports:
       - "5432:5432"
+    restart: always
     environment:
       - POSTGRES_DB=cdc
       - POSTGRES_USER=cdc
