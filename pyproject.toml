@@ -11,6 +11,7 @@ dependencies = [
     "certifi>=2025.11.12",
     "confluent-kafka==2.12.2",
     "duckdb==1.4.3",
+    "fastapi>=0.127.0",
     "fastparquet>=2025.12.0",
     "gdown==5.2.0",
     "httpx>=0.28.1",
@@ -26,4 +27,5 @@ dependencies = [
     "spark-nlp==6.2.3",
     "sqlalchemy>=2.0.45",
     "tqdm>=4.66.0",
+    "uvicorn>=0.40.0",
 ]
