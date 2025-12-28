@@ -27,9 +27,9 @@ def push_parquet_to_redis(parquet_path: str, redis_host: str, redis_port: int):
         # 4. Push the parquet file to Redis
         total_rows = 0
         for batch in table.iter_batches(batch_size=10000):
-            # if total_rows == 10000:
-            #     logging.info(f"Pushed {total_rows} rows to Redis")
-            #     break
+            if total_rows == 10000:
+                logging.info(f"Pushed {total_rows} rows to Redis")
+                break
 
             batch_df = batch.to_pandas()
 

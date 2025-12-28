@@ -19,3 +19,4 @@ alembic==1.17.2
 fastparquet==2025.12.0
 fastapi==0.127.0
 uvicorn==0.40.0
+requests>=2.32.5

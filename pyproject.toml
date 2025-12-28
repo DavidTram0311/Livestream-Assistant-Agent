@@ -24,6 +24,7 @@ dependencies = [
     "pyarrow>=22.0.0",
     "pyspark==3.3.1",
     "python-dotenv>=1.0.0",
+    "requests>=2.32.5",
     "spark-nlp==6.2.3",
     "sqlalchemy>=2.0.45",
     "tqdm>=4.66.0",

@@ -3,7 +3,7 @@ from sparknlp.base import *
 from sparknlp.annotator import *
 from pyspark.ml import *
 import logging
-from utils import is_effectively_empty
+from .utils import is_effectively_empty
 
 logging.basicConfig(
     level=logging.INFO, 
