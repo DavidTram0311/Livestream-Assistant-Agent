@@ -1,18 +1,17 @@
 services:
-  feature_retrieval_service:
-    container_name: feature-retrieval-service
-    depends_on:
-      redis:
-        condition: service_healthy
+  livestream_agent:
+    container_name: livestream_agent
     build:
-      context: ./src/online_stores/
+      context: ./src/agent/
       dockerfile: Dockerfile
     env_file:
-      - ./src/online_stores/.env
+      - ./src/agent/.env
+    environment:
+      - IS_APPLE_SILICON=True
     ports:
       - "8081:8081"
     volumes:
-      - ./src/online_stores/data:/app/data
+      - ./src/agent/data:/app/data
     networks:
       - mlops-k6-network
 

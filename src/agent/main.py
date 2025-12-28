@@ -18,6 +18,7 @@ load_dotenv()
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+IS_APPLE_SILICON = os.getenv("IS_APPLE_SILICON", True)
 
 # Redis init
 @asynccontextmanager
@@ -36,7 +37,7 @@ async def lifespan(app: FastAPI):
     model_name="sentimentdl_use_twitter",
     encoder_name="tfhub_use",
     gpu=False,
-    apple_silicon=True
+    apple_silicon=IS_APPLE_SILICON
     )
     logging.info(f"Sentiment service initialized")
     yield

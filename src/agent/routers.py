@@ -1,4 +1,3 @@
-from core.sentiment_extract import SentimentExtract
 import logging
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse

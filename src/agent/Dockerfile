@@ -22,8 +22,10 @@ RUN rm /tmp/requirements.txt
 WORKDIR /app
 
 # 6. Copy the rest of your app
+COPY ./core /app/core
+COPY ./routers.py /app
 COPY ./feature_source.py /app
-COPY ./api.py /app
+COPY ./main.py /app
 COPY ./start.sh /app
 
 # 7. Run the start script
