@@ -1,32 +1,42 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_bin
 FROM python:3.10-slim
 
-# Install curl
-RUN apt-get update && apt-get install -y curl
+# 1. Install Java 21 and procps
+RUN apt-get update && apt-get install -y \
+    curl \
+    openjdk-21-jre-headless \
+    procps \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# 1. Install uv into the python image
+# 2. Set JAVA_HOME (Updated for Java 21 and Apple Silicon/ARM64)
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-arm64
+# Note: If you build on an Intel machine, this would be:
+# ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+# 3. Install uv into the python image
 COPY --from=uv_bin /uv /uvx /bin/
 
-# 2. Copy dependency files first (for better caching)
+# 4. Copy dependency files first (for better caching)
 COPY ./requirements.txt /tmp/requirements.txt
 
-# 3. Install dependencies using uv
+# 5. Install dependencies using uv
 # --system tells uv to install into the global site-packages
 # --frozen ensures your versions stay exact
 RUN uv pip install --system --no-cache -r /tmp/requirements.txt
 
-# 4. Remove the requirements.txt file
+# 6. Remove the requirements.txt file
 RUN rm /tmp/requirements.txt
 
-# 5. Set the working directory
+# 7. Set the working directory
 WORKDIR /app
 
-# 6. Copy the rest of your app
+# 8. Copy the rest of your app
 COPY ./core /app/core
 COPY ./routers.py /app
 COPY ./feature_source.py /app
 COPY ./main.py /app
 COPY ./start.sh /app
 
-# 7. Run the start script
+# 9. Run the start script
 CMD ["sh", "-c", "bash start.sh"]
