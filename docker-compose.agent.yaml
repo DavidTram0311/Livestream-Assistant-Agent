@@ -12,6 +12,8 @@ services:
       - "8081:8081"
     volumes:
       - ./src/agent/data:/app/data
+      - ./.ivy2:/root/.ivy2  # This will store the downloaded jars on your Mac
+      - ./.m2:/root/.m2      # This stores Maven metadata
     networks:
       - mlops-k6-network
 

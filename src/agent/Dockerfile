@@ -14,6 +14,20 @@ ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-arm64
 # Note: If you build on an Intel machine, this would be:
 # ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
+# 3. ADD THIS: Unlock the memory access Spark needs for Java 17+
+ENV JAVA_TOOL_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED \
+                        --add-opens=java.base/sun.nio.ch=ALL-UNNAMED \
+                        --add-opens=java.base/java.lang=ALL-UNNAMED \
+                        --add-opens=java.base/java.util=ALL-UNNAMED \
+                        --add-opens=java.base/java.util.concurrent=ALL-UNNAMED \
+                        --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+                        --add-opens=java.base/sun.util.calendar=ALL-UNNAMED \
+                        --add-opens=java.base/sun.security.action=ALL-UNNAMED \
+                        --add-opens=java.base/sun.net.util=ALL-UNNAMED \
+                        --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+                        --add-opens=java.base/java.io=ALL-UNNAMED \
+                        --add-opens=java.base/java.net=ALL-UNNAMED"
+
 # 3. Install uv into the python image
 COPY --from=uv_bin /uv /uvx /bin/
 
