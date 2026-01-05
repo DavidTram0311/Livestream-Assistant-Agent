@@ -1,17 +1,17 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_bin
 FROM python:3.10-slim-bookworm
 
-# 1. Install system deps and OpenJDK 11
+# 1. Install system deps and OpenJDK 17 (Default for Debian Bookworm)
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     procps \
-    openjdk-11-jre-headless \
+    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Set JAVA_HOME
-# Note: For Apple Silicon (ARM64). If on Intel/AMD64, use java-11-openjdk-amd64
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64
+# Debian Bookworm uses Java 17 by default
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # 3. Install uv
