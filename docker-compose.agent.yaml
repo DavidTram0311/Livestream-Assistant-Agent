@@ -1,5 +1,6 @@
 services:
   livestream_agent:
+    platform: linux/amd64
     container_name: livestream_agent
     build:
       context: ./src/agent/
@@ -14,6 +15,7 @@ services:
       - ./src/agent/data:/app/data
       - ./.ivy2:/root/.ivy2  # This will store the downloaded jars on your Mac
       - ./.m2:/root/.m2      # This stores Maven metadata
+      - ~/cache_pretrained:/root/cache_pretrained 
     networks:
       - mlops-k6-network
 

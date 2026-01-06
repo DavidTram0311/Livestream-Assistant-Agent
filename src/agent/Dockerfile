@@ -1,18 +1,27 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv_bin
-FROM python:3.10-slim-bookworm
+FROM python:3.10-slim-bullseye
 
-# 1. Install system deps and OpenJDK 17 (Default for Debian Bookworm)
-RUN apt-get update && apt-get install -y \
+# 1. Install Java and system tools for ARM64
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-11-jdk-headless \
     curl \
-    gnupg \
+    wget \
     procps \
-    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Set JAVA_HOME
-# Debian Bookworm uses Java 17 by default
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
-ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# 3. Set Environment Variables
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64
+ENV SPARK_VERSION=3.3.1
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$SPARK_HOME/bin:$PATH
+ENV PYSPARK_PYTHON=python3
+
+# 4. Install Spark 3.3.1 (using the archive for consistency)
+RUN wget -q https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz && \
+    tar -xzf spark-${SPARK_VERSION}-bin-hadoop3.tgz && \
+    mv spark-${SPARK_VERSION}-bin-hadoop3 $SPARK_HOME && \
+    rm spark-${SPARK_VERSION}-bin-hadoop3.tgz
 
 # 3. Install uv
 COPY --from=uv_bin /uv /uvx /bin/
