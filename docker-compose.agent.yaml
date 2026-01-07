@@ -1,6 +1,5 @@
 services:
   livestream_agent:
-    platform: linux/amd64
     container_name: livestream_agent
     build:
       context: ./src/agent/
