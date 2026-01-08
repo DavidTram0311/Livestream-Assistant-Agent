@@ -2,7 +2,7 @@ FROM ghcr.io/astral-sh/uv:latest AS uv_bin
 FROM python:3.10-slim-bullseye
 
 # 1. Install Java and system tools for ARM64
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends --fix-missing \
     openjdk-11-jdk-headless \
     curl \
     wget \
