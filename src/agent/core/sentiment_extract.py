@@ -11,8 +11,11 @@ logging.basicConfig(
 
 logging.info(f"Starting SentimentExtract")
 
-def get_spark_session(gpu: bool = False, apple_silicon: bool = True) -> SparkSession:
-    return sparknlp.start(gpu=gpu, apple_silicon=apple_silicon)
+def get_spark_session(gpu: bool = False, apple_silicon: bool = False) -> SparkSession:
+    if apple_silicon:
+        return sparknlp.start(gpu=gpu, aarch64=True)
+
+    return sparknlp.start(gpu=gpu)
 
 class SentimentExtract:
     def __init__(

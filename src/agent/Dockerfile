@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends --fix-missing \
 
 # 3. Set Environment Variables
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64
-ENV SPARK_VERSION=3.3.1
+ENV SPARK_VERSION=3.5.3
 ENV SPARK_HOME=/opt/spark
 ENV PATH=$SPARK_HOME/bin:$PATH
 ENV PYSPARK_PYTHON=python3

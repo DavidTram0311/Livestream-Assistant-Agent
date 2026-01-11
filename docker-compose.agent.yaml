@@ -7,7 +7,7 @@ services:
     env_file:
       - ./src/agent/.env
     environment:
-      - IS_APPLE_SILICON=False
+      - IS_APPLE_SILICON=True
     ports:
       - "8081:8081"
     volumes:
