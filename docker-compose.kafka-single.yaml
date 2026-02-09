@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   kafka-single:
     container_name: kafka-single

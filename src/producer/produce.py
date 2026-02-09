@@ -1,194 +1,148 @@
+"""Refactored producer using shared utilities"""
 import time
-from confluent_kafka import SerializingProducer
-from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.avro import AvroSerializer, AvroDeserializer
-from confluent_kafka.serialization import StringSerializer
-from confluent_kafka.admin import AdminClient, NewTopic
-from dotenv import load_dotenv
-import os
-import logging
-import pandas as pd
 import argparse
-import pyarrow.parquet as pq
-load_dotenv()
+from pathlib import Path
+from common.logging import setup_logging, get_logger
+from common.kafka import KafkaProducerClient, KafkaAdminClient
+from common.storage import ParquetBatchReader
+from .config import ProducerConfig
 
-# Configuration
-KAFKA_BOOTSTRAP_CONTAINERS = os.getenv("KAFKA_BOOTSTRAP_CONTAINERS")
-KAFKA_BOOTSTRAP_LOCAL = os.getenv("KAFKA_BOOTSTRAP_LOCAL")
-SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_SERVER")
-TOPIC_NAME = os.getenv("KAFKA_OUTPUT_TOPICS")
-AVRO_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "avro_schemas", "comment_events.avsc")
-REVIEW_PARQUET_PATH = os.path.join(os.path.dirname(__file__), "data", "user_comments.parquet")
+# Setup logging
+setup_logging(level="INFO")
+logger = get_logger(__name__)
 
-
+# Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-m",
     "--mode",
     default="setup",
     choices=["setup", "teardown"],
-    help="Whether to setup or teardown a Kafka topic with comment events. Setup will teardown before beginning emitting events."
+    help="Whether to setup or teardown a Kafka topic with comment events."
 )
-
 parser.add_argument(
     "-t",
     "--type",
     default="local",
     choices=["local", "containers"],
-    help="The type of Kafka bootstrap servers to use. Defaults to local."
+    help="The type of Kafka bootstrap servers to use."
 )
 
-def create_topic(topic_name: str, num_partitions: int, replication_factor: int, kafka_bootstrap: str):
-    admin_client = AdminClient({"bootstrap.servers": kafka_bootstrap})
-    new_topic = NewTopic(topic_name, num_partitions, replication_factor)
 
-    # Create topic
-    fs = admin_client.create_topics([new_topic])
-
-    for topic, f in fs.items():
-        try:
-            f.result()
-            logging.info(f"Topic {topic} created successfully")
-        except Exception as e:
-            logging.error(f"Error creating topic {topic}: {e}")
-
-def teardown_topic(topic_name: str, kafka_bootstrap: str):
-    admin_client = AdminClient({"bootstrap.servers": kafka_bootstrap})
-    fs = admin_client.delete_topics([topic_name])
-
-    for topic, f in fs.items():
-        try:
-            f.result()
-            logging.info(f"Topic {topic} deleted successfully")
-        except Exception as e:
-            logging.error(f"Error deleting topic {topic}: {e}")
-
-def produce_comment_events(
-    avro_schema_path: str, 
-    schema_registry_url: str, 
-    kafka_bootstrap: str,
-    review_parquet_path: str,
-    topic_name: str,
-    num_partitions: int,
-    replication_factor: int
-):
-    # Initialize Schema Registry Client
-    # Retry 20 times with a 2 second delay
-    for _ in range(20):
-        try:
-            schema_registry_client = SchemaRegistryClient({"url": schema_registry_url})
-
-            # Test connection by fetching subjects
-            schema_registry_client.get_subjects()
-            logging.info("Schema Registry Client initialized successfully")
-            break
-        except Exception as e:
-            logging.error(f"Attempt {_ + 1} failed: Error initializing Schema Registry Client: {e}")
-            time.sleep(2)
+def delivery_report(err, msg):
+    """Kafka delivery callback"""
+    if err is not None:
+        logger.error(f"Error producing record {msg.key()}: {err}")
     else:
-        raise Exception("Failed to initialize Schema Registry Client")
-
-    # Initialize Avro Serializer
-    with open(avro_schema_path, "r") as f:
-        value_schema_str = f.read()
-    avro_serializer = AvroSerializer(schema_registry_client, value_schema_str)
-
-    # Initialize Producer
-    for _ in range(10):
-        try:
-            producer_conf = {
-                "bootstrap.servers": kafka_bootstrap,
-                "key.serializer": StringSerializer("utf_8"),
-                "value.serializer": avro_serializer,
-                "acks": "all", # Ensure all replicas receive data
-                "retries": 10, # Retry sending if a broker is temporarily down
-                "retry.backoff.ms": 500, # Wait 500ms before retrying
-            }
-            producer = SerializingProducer(producer_conf)
-            logging.info("Producer initialized successfully")
-            break
-        except Exception as e:
-            logging.error(f"Error initializing Producer: {e}")
-            time.sleep(1)
-    else:
-        raise Exception("Failed to initialize Producer")
+        logger.info(
+            f"Record {msg.key()} successfully produced to "
+            f"{msg.topic()} [{msg.partition()}] at offset {msg.offset()}"
+        )
 
 
-    # Create topic
-    def delivery_report(err, msg):
-        if err is not None:
-            logging.error(f"Error producing record {msg.key()}: {err}")
-        else:
-            logging.info(f"Record {msg.key()} successfully produced to {msg.topic()} [{msg.partition()}] at offset {msg.offset()}")
+def produce_comment_events(config: ProducerConfig, kafka_mode: str):
+    """
+    Produce comment events to Kafka using shared utilities.
     
-    create_topic(topic_name, num_partitions, replication_factor, kafka_bootstrap)
-
-    # Produce records in batch
+    Args:
+        config: ProducerConfig instance
+        kafka_mode: 'local' or 'containers'
+    """
+    base_dir = Path(__file__).parent
+    bootstrap_servers = config.get_bootstrap_servers(kafka_mode)
+    schema_path = config.get_absolute_schema_path(str(base_dir))
+    parquet_path = config.get_absolute_parquet_path(str(base_dir))
+    
+    logger.info(f"Using Kafka bootstrap servers: {bootstrap_servers}")
+    logger.info(f"Schema path: {schema_path}")
+    logger.info(f"Parquet path: {parquet_path}")
+    
+    # Initialize Kafka Admin Client
+    admin = KafkaAdminClient(bootstrap_servers)
+    
+    # Create topic
+    logger.info(f"Creating topic: {config.output_topic}")
+    admin.create_topic(
+        topic_name=config.output_topic,
+        num_partitions=config.num_partitions,
+        replication_factor=config.replication_factor
+    )
+    
+    # Initialize Kafka Producer
+    logger.info("Initializing Kafka producer...")
+    producer = KafkaProducerClient(
+        bootstrap_servers=bootstrap_servers,
+        schema_registry_url=config.schema_registry_url,
+        avro_schema_path=schema_path
+    )
+    
+    # Initialize Parquet Reader
+    logger.info(f"Reading parquet file: {parquet_path}")
+    reader = ParquetBatchReader(parquet_path, batch_size=config.batch_size)
+    
+    # Produce records
     try:
-        parquet_file = pq.ParquetFile(review_parquet_path)
-        logging.info("Starting to send records...")
+        logger.info("Starting to send records...")
         comment_id = 0
-        for batch in parquet_file.iter_batches(batch_size=1000):
-            batch_df = batch.to_pandas()
-
-            for index, row in batch_df.iterrows():
+        
+        for batch_df in reader.iter_batches():
+            for _, row in batch_df.iterrows():
                 comment_id += 1
                 record = {
                     "comment_id": int(comment_id),
                     "user_id": str(row.reviewerID),
                     "comments": str(row.reviewText),
-                    "event_timestamp": int(time.time() * 1000) # Current timestamp in milliseconds
+                    "event_timestamp": int(time.time() * 1000)
                 }
-
-                while True:
-                    try:
-                        producer.produce(
-                            topic=topic_name,
-                            key=record["user_id"],
-                            value=record,
-                            on_delivery=delivery_report
-                        )
-                        break
-                    except BufferError:
-                        logging.warning("Local queue full, waiting...")
-                        producer.poll(1)
-
-                # Poll the producer to handle any delivery reports
-                producer.poll(0)
                 
-        logging.info("All records sent successfully")
+                producer.produce(
+                    topic=config.output_topic,
+                    key=record["user_id"],
+                    value=record,
+                    on_delivery=delivery_report
+                )
+        
+        logger.info("All records sent successfully")
         producer.flush()
-        logging.info("Producer flushed successfully")
+        logger.info("Producer flushed successfully")
         return True
+        
     except Exception as e:
-        logging.error(f"Error producing records: {e}")
+        logger.error(f"Error producing records: {e}")
         return False
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    args = parser.parse_args()
-    kafka_type = args.type
-    kafka_bootstrap = KAFKA_BOOTSTRAP_LOCAL if kafka_type == "local" else KAFKA_BOOTSTRAP_CONTAINERS
 
+def teardown_topic(config: ProducerConfig, kafka_mode: str):
+    """
+    Delete Kafka topic.
+    
+    Args:
+        config: ProducerConfig instance
+        kafka_mode: 'local' or 'containers'
+    """
+    bootstrap_servers = config.get_bootstrap_servers(kafka_mode)
+    admin = KafkaAdminClient(bootstrap_servers)
+    
+    logger.info(f"Deleting topic: {config.output_topic}")
+    admin.delete_topic(config.output_topic)
+
+
+def main():
+    """Main entry point"""
+    args = parser.parse_args()
+    
+    # Load configuration
+    config = ProducerConfig()
+    
     if args.mode == "setup":
         # Teardown first if setup is specified
-        teardown_topic(
-            topic_name=TOPIC_NAME, 
-            kafka_bootstrap=kafka_bootstrap
-            )
-
+        teardown_topic(config, args.type)
         time.sleep(5)
-        produce_comment_events(
-            avro_schema_path=AVRO_SCHEMA_PATH, 
-            schema_registry_url=SCHEMA_REGISTRY_URL, 
-            kafka_bootstrap=kafka_bootstrap, 
-            review_parquet_path=REVIEW_PARQUET_PATH, 
-            topic_name=TOPIC_NAME, 
-            num_partitions=5, 
-            replication_factor=3
-            )
+        produce_comment_events(config, args.type)
+        
     elif args.mode == "teardown":
-        teardown_topic(
-            topic_name=TOPIC_NAME, 
-            kafka_bootstrap=kafka_bootstrap
-            )
+        teardown_topic(config, args.type)
+
+
+if __name__ == "__main__":
+    main()

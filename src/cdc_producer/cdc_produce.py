@@ -1,18 +1,19 @@
-import os
-import logging
+"""Refactored CDC producer using shared utilities"""
 import time
-from db import PostgresSQLClient
-from db import Event
-import pandas as pd
-import pyarrow.parquet as pq
 import random
-from dotenv import load_dotenv
 import argparse
-from sqlalchemy import func
+from pathlib import Path
+from common.logging import setup_logging, get_logger
+from common.storage import ParquetBatchReader
+from common.db import PostgresClient
+from .config import CDCProducerConfig
+from .db import Event
 
-# Add logging config
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Setup logging
+setup_logging(level="INFO")
+logger = get_logger(__name__)
 
+# Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-b",
@@ -22,90 +23,98 @@ parser.add_argument(
     help="The batch size of the events to produce"
 )
 
-load_dotenv()
-
-REVIEW_PARQUET_PATH = os.path.join(os.path.dirname(__file__), "data", "user_comments.parquet")
-
 
 def format_event(row):
+    """Format row data into Event object"""
     return Event(
         user_id=str(row.get("user_id", "anonymous")),
         comments=str(row.get("comments", ""))
-        )
-
-def produce_event(review_parquet_path: str, batch_size: int):
-    """
-    Produce events from a parquet file randomly and waiting for a random time between 1 and 10 seconds.
-
-    Args:
-        review_parquet_path: The path to the parquet file.
-    """
-    # Connect to PostgreSQL Client
-    logging.info("Connecting to PostgreSQL Client")
-    pc = PostgresSQLClient(
-        port=os.getenv("POSTGRES_PORT"),
-        database=os.getenv("POSTGRES_DB"),
-        host="localhost",
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
     )
-    logging.info("PostgreSQL Client connected successfully")
 
-    # Get session
-    session = pc.get_session()
 
+def produce_event(config: CDCProducerConfig):
+    """
+    Produce events from parquet file to PostgreSQL.
+    
+    Args:
+        config: CDCProducerConfig instance
+    """
+    base_dir = Path(__file__).parent
+    parquet_path = config.get_absolute_parquet_path(str(base_dir))
+    
+    logger.info(f"Parquet path: {parquet_path}")
+    
+    # Initialize PostgreSQL client using shared utility
+    logger.info("Connecting to PostgreSQL Client")
+    pg_client = PostgresClient(config)
+    logger.info("PostgreSQL Client connected successfully")
+    
+    # Initialize Parquet Reader
+    logger.info(f"Reading parquet file: {parquet_path}")
+    reader = ParquetBatchReader(parquet_path, batch_size=config.batch_size)
+    
     # Produce events to PostgreSQL Database
-    logging.info("Producing events to PostgreSQL Database... 🔥")
-
-    try: 
-        parquet_file = pq.ParquetFile(review_parquet_path)
-        total_processed = 0
-
-        for batch in parquet_file.iter_batches(batch_size=batch_size):
-            records = []
-            batch_df = batch.to_pandas()
-
-            print(f"Batch length: {len(batch_df)}")
-
-            for index, row in batch_df.iterrows():
-                random_stop = random.randint(1, batch_size)
-                record = format_event(
-                    {
+    logger.info("Producing events to PostgreSQL Database... 🔥")
+    
+    total_processed = 0
+    
+    try:
+        with pg_client.get_session() as session:
+            for batch_df in reader.iter_batches(max_records=config.max_records):
+                records = []
+                
+                logger.info(f"Batch length: {len(batch_df)}")
+                
+                for index, row in batch_df.iterrows():
+                    random_stop = random.randint(1, config.batch_size)
+                    
+                    record = format_event({
                         "user_id": row["reviewerID"],
                         "comments": row["reviewText"]
-                    }
-                )
-                records.append(record)
-                total_processed += 1
-
-                if random_stop == index:
+                    })
+                    records.append(record)
+                    total_processed += 1
+                    
+                    if random_stop == index:
+                        break
+                
+                # Bulk insert
+                try:
+                    session.bulk_save_objects(records)
+                    session.commit()
+                    logger.info(f"Processed {len(records)} records")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"Failed to commit batch to PostgreSQL: {e}")
+                    raise
+                
+                # Random sleep between batches
+                time.sleep(random.uniform(1, 10))
+                
+                if total_processed >= config.max_records:
+                    logger.info(f"Total processed records reached {config.max_records}, breaking")
                     break
-
-            try:
-                session.bulk_save_objects(records)
-                session.commit()
-            except Exception as e:
-                session.rollback()
-                logging.error(f"Failed to commit batchs to PostgreSQL Database: {e}")
-
-            logging.info(f"Processed {len(records)} records")
-            time.sleep(random.uniform(1, 10))
-        
-            if total_processed >= 100:
-                logging.info(f"Total processed records reached 100, breaking the loop")
-                break
     
     except Exception as e:
-        logging.error(f"Error producing events to PostgreSQL Database: {e}")
-        session.rollback()
-        raise e
-
+        logger.error(f"Error producing events to PostgreSQL Database: {e}")
+        raise
+    
     finally:
-        session.close()
-        logging.info("PostgreSQL Client disconnected successfully")
-        logging.info(f"Processed {total_processed} records")
+        pg_client.close()
+        logger.info("PostgreSQL Client disconnected successfully")
+        logger.info(f"Total processed: {total_processed} records")
+
+
+def main():
+    """Main entry point"""
+    args = parser.parse_args()
+    
+    # Load configuration
+    config = CDCProducerConfig()
+    config.batch_size = args.batch_size
+    
+    produce_event(config)
+
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-
-    produce_event(REVIEW_PARQUET_PATH, args.batch_size)
+    main()

@@ -1,4 +1,7 @@
 .env
+.env.local
+.env.docker
+.env.*.local
 amazon_metadata_2014/
 *.jsonl
 *.json

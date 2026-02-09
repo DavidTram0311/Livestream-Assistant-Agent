@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 import logging
-from db.postgres_client import PostgresSQLClient
+from .db.postgres_client import PostgresSQLClient
 
 load_dotenv()
 

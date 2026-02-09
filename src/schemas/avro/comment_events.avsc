@@ -1,0 +1,31 @@
+{
+  "doc": "Schema for user comments used in livestream assistant agent",
+  "name": "CommentEvent",
+  "namespace": "com.comment.events",
+  "type": "record",
+  "fields": [
+    {
+      "name": "comment_id",
+      "type": "long",
+      "doc": "Unique comment ID of the comment"
+    },
+    {
+      "name": "user_id",
+      "type": "string",
+      "doc": "Unique ID of the reviewer"
+    },
+    {
+      "name": "comments",
+      "type": "string",
+      "doc": "The full text content of the review"
+    },
+    {
+      "name": "event_timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "The time user comment"
+    }
+  ]
+}

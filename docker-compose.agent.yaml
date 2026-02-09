@@ -9,7 +9,10 @@ services:
     environment:
       - IS_APPLE_SILICON=True
     ports:
-      - "8081:8081"
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./src/agent/data:/app/data
       - ./.ivy2:/root/.ivy2  # This will store the downloaded jars on your Mac

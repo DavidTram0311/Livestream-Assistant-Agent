@@ -1,7 +1,8 @@
-import logging
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from common.logging import get_logger
+logger = get_logger(__name__)
 
 class SentimentRequest(BaseModel):
     text: str
@@ -21,7 +22,7 @@ async def get_gender_by_user(
     # HGET retrieves a specific field from the hash
         gender = await redis_client.hget("user_genders", str(user_id))
     except Exception as e:
-        logging.error(f"Redis error: {e}")
+        logger.error(f"Redis error: {e}")
         raise HTTPException(status_code=500, detail="Redis error")
 
     if gender is None:
@@ -47,7 +48,7 @@ async def get_sentiment(
     try:
         sentiment = sentiment_service.predict(text)
     except Exception as e:
-        logging.error(f"Sentiment error: {e}")
+        logger.error(f"Sentiment error: {e}")
         raise HTTPException(status_code=500, detail="Sentiment error")
     
     return JSONResponse(status_code=200, content={
