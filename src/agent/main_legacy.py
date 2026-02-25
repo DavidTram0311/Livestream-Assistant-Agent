@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 from agent.core.sentiment_extract import SentimentExtract
 from agent.routers import feature_router, sentiment_router
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +20,12 @@ load_dotenv()
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 IS_APPLE_SILICON = os.getenv("IS_APPLE_SILICON", "False").lower() == "true"
+SPARKNLP_CACHE_FOLDER = os.path.expanduser(os.getenv("SPARKNLP_CACHE_FOLDER", "~/.sparknlp_cache"))
+
+# Ensure SparkNLP cache directory exists
+cache_path = Path(SPARKNLP_CACHE_FOLDER)
+cache_path.mkdir(parents=True, exist_ok=True)
+logger.info(f"SparkNLP cache directory: {SPARKNLP_CACHE_FOLDER}")
 
 # Redis init
 @asynccontextmanager
@@ -37,7 +44,8 @@ async def lifespan(app: FastAPI):
     model_name="sentimentdl_use_twitter",
     encoder_name="tfhub_use",
     gpu=False,
-    apple_silicon=IS_APPLE_SILICON
+    apple_silicon=IS_APPLE_SILICON,
+    cache_folder=SPARKNLP_CACHE_FOLDER
     )
     logging.info(f"Sentiment service initialized")
     yield

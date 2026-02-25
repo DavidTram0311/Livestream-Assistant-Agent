@@ -3,7 +3,7 @@ import uvicorn
 
 
 def main():
-    """Run the CDC Producer API server"""
+    """Run the unified API server with CDC Producer, Feature Extraction, and Sentiment Analysis"""
     uvicorn.run(
         "src.api.server:app",
         host="0.0.0.0",

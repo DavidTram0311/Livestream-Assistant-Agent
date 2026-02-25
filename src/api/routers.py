@@ -1,16 +1,44 @@
-"""API routers for CDC Producer"""
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+"""API routers for CDC Producer and Agent Services"""
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pathlib import Path
-from common.logging import get_logger
-from cdc_producer.config import CDCProducerConfig
-from cdc_producer.cdc_produce import produce_event
-from api.models import ProduceEventRequest, ProduceEventResponse
+from src.common.logging import get_logger
+from src.cdc_producer.config import CDCProducerConfig
+from src.cdc_producer.cdc_produce import produce_event
+from src.api.models import (
+    ProduceEventRequest, 
+    ProduceEventResponse, 
+    SentimentRequest, 
+    SentimentResponse,
+    GenderResponse
+)
 
 logger = get_logger(__name__)
 
 cdc_router = APIRouter()
+feature_router = APIRouter()
+sentiment_router = APIRouter()
 
+@feature_router.get("/gender/{user_id}", response_model=GenderResponse)
+async def get_gender_by_user(
+    user_id: str,
+    request: Request
+):
+    redis_client = request.app.state.redis_client
+    
+    try:
+        gender = await redis_client.hget("user_genders", str(user_id))
+    except Exception as e:
+        logger.error(f"Redis error: {e}")
+        raise HTTPException(status_code=500, detail="Redis error")
+
+    if gender is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return GenderResponse(
+        gender=gender,
+        user_id=user_id
+    )
 
 @cdc_router.post("/produce", response_model=ProduceEventResponse)
 async def produce_cdc_events(
@@ -88,3 +116,37 @@ async def produce_cdc_events_sync(request: ProduceEventRequest):
             status_code=500,
             detail=f"CDC event production failed: {str(e)}"
         )
+
+
+@sentiment_router.post("/", response_model=SentimentResponse)
+async def get_sentiment(
+    payload: SentimentRequest,
+    request: Request
+):
+    """
+    Get sentiment prediction for the given text.
+    
+    Args:
+        payload: SentimentRequest containing text and comment_id
+        request: FastAPI Request object
+        
+    Returns:
+        SentimentResponse with sentiment and confidence
+    """
+    sentiment_service = request.app.state.sentiment_service
+    text = payload.text
+    comment_id = payload.comment_id
+
+    if text is None or comment_id is None:
+        raise HTTPException(status_code=400, detail="Text and comment_id are required")
+        
+    try:
+        sentiment = sentiment_service.predict(text)
+    except Exception as e:
+        logger.error(f"Sentiment error: {e}")
+        raise HTTPException(status_code=500, detail="Sentiment error")
+    
+    return SentimentResponse(
+        sentiment=sentiment,
+        comment_id=comment_id
+    )

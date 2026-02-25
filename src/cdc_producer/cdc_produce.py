@@ -3,9 +3,9 @@ import time
 import random
 import argparse
 from pathlib import Path
-from common.logging import setup_logging, get_logger
-from common.storage import ParquetBatchReader
-from common.db import PostgresClient
+from src.common.logging import setup_logging, get_logger
+from src.common.storage import ParquetBatchReader
+from src.common.db import PostgresClient
 from .config import CDCProducerConfig
 from .db import Event
 

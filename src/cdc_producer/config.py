@@ -1,6 +1,6 @@
 """CDC Producer module configuration"""
 from pydantic import Field
-from common.config import PostgresConfig
+from src.common.config import PostgresConfig
 
 
 class CDCProducerConfig(PostgresConfig):

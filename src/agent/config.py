@@ -1,17 +1,32 @@
 """Agent module configuration"""
-from pydantic import Field
-from common.config import RedisConfig
+from pydantic import Field, field_validator
+from src.common.config import RedisConfig
+import os
+from pathlib import Path
 
 
 class AgentConfig(RedisConfig):
     """Agent-specific configuration"""
     
     # Spark NLP settings
+    sparknlp_cache_folder: str = Field(
+        default="~/.sparknlp_cache",
+        description="SparkNLP pretrained models cache directory",
+        validation_alias="SPARKNLP_CACHE_FOLDER"
+    )
+    
     is_apple_silicon: bool = Field(
         default=False,
         description="Whether running on Apple Silicon",
         validation_alias="IS_APPLE_SILICON"
     )
+    
+    @field_validator("sparknlp_cache_folder")
+    def expand_cache_folder(cls, v):
+        """Expand ~ and environment variables in cache folder path"""
+        expanded = os.path.expanduser(v)
+        expanded = os.path.expandvars(expanded)
+        return expanded
     
     # Sentiment model settings
     sentiment_model_name: str = Field(
@@ -61,4 +76,10 @@ class AgentConfig(RedisConfig):
         default=1,
         description="Number of worker processes",
         validation_alias="API_WORKERS"
+    )
+    
+    user_table_path: str = Field(
+        default="src/agent/data/user_table.parquet",
+        description="Path to user table parquet file",
+        validation_alias="USER_TABLE_PATH"
     )

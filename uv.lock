@@ -157,6 +157,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cachetools"
+version = "7.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/07/56595285564e90777d758ebd383d6b0b971b87729bbe2184a849932a3736/cachetools-7.0.1.tar.gz", hash = "sha256:e31e579d2c5b6e2944177a0397150d312888ddf4e16e12f1016068f0c03b8341", size = 36126, upload-time = "2026-02-10T22:24:05.03Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/9e/5faefbf9db1db466d633735faceda1f94aa99ce506ac450d232536266b32/cachetools-7.0.1-py3-none-any.whl", hash = "sha256:8f086515c254d5664ae2146d14fc7f65c9a4bce75152eb247e5a9c5e6d7b2ecf", size = 13484, upload-time = "2026-02-10T22:24:03.741Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1254,6 +1263,7 @@ dependencies = [
     { name = "attrs" },
     { name = "authlib" },
     { name = "boto3" },
+    { name = "cachetools" },
     { name = "certifi" },
     { name = "confluent-kafka" },
     { name = "duckdb" },
@@ -1271,6 +1281,7 @@ dependencies = [
     { name = "psycopg" },
     { name = "psycopg2-binary" },
     { name = "pyarrow" },
+    { name = "pydantic-settings" },
     { name = "pyspark" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1291,6 +1302,7 @@ requires-dist = [
     { name = "attrs", specifier = ">=25.4.0" },
     { name = "authlib", specifier = ">=1.6.7" },
     { name = "boto3", specifier = ">=1.34.0" },
+    { name = "cachetools", specifier = ">=7.0.1" },
     { name = "certifi", specifier = ">=2025.11.12" },
     { name = "confluent-kafka", specifier = "==2.12.2" },
     { name = "duckdb", specifier = "==1.4.3" },
@@ -1306,7 +1318,8 @@ requires-dist = [
     { name = "psycopg", specifier = ">=3.3.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pyarrow", specifier = ">=22.0.0" },
-    { name = "pyspark", specifier = "==3.5.1" },
+    { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "pyspark", specifier = "==3.3.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
@@ -1906,11 +1919,11 @@ wheels = [
 
 [[package]]
 name = "py4j"
-version = "0.10.9.7"
+version = "0.10.9.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/f2/b34255180c72c36ff7097f7c2cdca02abcbd89f5eebf7c7c41262a9a0637/py4j-0.10.9.7.tar.gz", hash = "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb", size = 1508234, upload-time = "2022-08-12T22:49:09.792Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/1f/b00295b6da3bd2f050912b9f71fdb436ae8f1601cf161365937d8553e24b/py4j-0.10.9.5.tar.gz", hash = "sha256:276a4a3c5a2154df1860ef3303a927460e02e97b047dc0a47c1c3fb8cce34db6", size = 761259, upload-time = "2022-03-18T01:06:29.681Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-0.10.9.7-py2.py3-none-any.whl", hash = "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b", size = 200481, upload-time = "2022-08-12T22:49:07.05Z" },
+    { url = "https://files.pythonhosted.org/packages/86/ec/60880978512d5569ca4bf32b3b4d7776a528ecf4bca4523936c98c92a3c8/py4j-0.10.9.5-py2.py3-none-any.whl", hash = "sha256:52d171a6a2b031d8a5d1de6efe451cf4f5baff1a2819aabc3741c8406539ba04", size = 199724, upload-time = "2022-03-18T01:06:27.762Z" },
 ]
 
 [[package]]
@@ -2113,6 +2126,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-settings"
+version = "2.13.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/6d/fffca34caecc4a3f97bda81b2098da5e8ab7efc9a66e819074a11955d87e/pydantic_settings-2.13.1.tar.gz", hash = "sha256:b4c11847b15237fb0171e1462bf540e294affb9b86db4d9aa5c01730bdbe4025", size = 223826, upload-time = "2026-02-19T13:45:08.055Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/4b/ccc026168948fec4f7555b9164c724cf4125eac006e176541483d2c959be/pydantic_settings-2.13.1-py3-none-any.whl", hash = "sha256:d56fd801823dbeae7f0975e1f8c8e25c258eb75d278ea7abb5d9cebb01b56237", size = 58929, upload-time = "2026-02-19T13:45:06.034Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2132,12 +2159,12 @@ wheels = [
 
 [[package]]
 name = "pyspark"
-version = "3.5.1"
+version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "py4j" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/73/e5/c9eb78cc982dafb7b5834bc5c368fe596216c8b9f7c4b4ffa104c4d2ab8f/pyspark-3.5.1.tar.gz", hash = "sha256:dd6569e547365eadc4f887bf57f153e4d582a68c4b490de475d55b9981664910", size = 316955685, upload-time = "2024-02-26T02:41:49.644Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/48/cc321e742a93320c681b3c7a9fd405d518c6326c89da3d67e35b9868e941/pyspark-3.3.1.tar.gz", hash = "sha256:e99fa7de92be406884bfd831c32b9306a3a99de44cfc39a2eefb6ed07445d5fa", size = 281393542, upload-time = "2022-10-25T07:47:50.596Z" }
 
 [[package]]
 name = "pytest"

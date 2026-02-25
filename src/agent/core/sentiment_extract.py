@@ -3,6 +3,7 @@ from sparknlp.base import *
 from sparknlp.annotator import *
 from pyspark.ml import *
 import logging
+import os
 from .utils import is_effectively_empty
 
 logging.basicConfig(
@@ -11,9 +12,14 @@ logging.basicConfig(
 
 logging.info(f"Starting SentimentExtract")
 
-def get_spark_session(gpu: bool = False, apple_silicon: bool = False) -> SparkSession:
+def get_spark_session(gpu: bool = False, apple_silicon: bool = False, cache_folder: str = None) -> SparkSession:
+    # Set environment variable before starting Spark session
+    if cache_folder:
+        os.environ['SPARK_NLP_CACHE'] = cache_folder
+        logging.info(f"Set SPARK_NLP_CACHE to: {cache_folder}")
+    
     if apple_silicon:
-        return sparknlp.start(gpu=gpu, aarch64=True)
+        return sparknlp.start(gpu=gpu, apple_silicon=True)
 
     return sparknlp.start(gpu=gpu)
 
@@ -25,16 +31,18 @@ class SentimentExtract:
         encoder_name: str, 
         gpu: bool = False,
         apple_silicon: bool = False,
+        cache_folder: str = None,
         spark: SparkSession = None
         ):
 
         self.input_col = input_col
         self.model_name = model_name
         self.encoder_name = encoder_name
+        self.cache_folder = cache_folder
 
         if spark is None:
             logging.info(f"Creating new Spark session")
-            self.spark = get_spark_session(gpu=gpu, apple_silicon=apple_silicon)
+            self.spark = get_spark_session(gpu=gpu, apple_silicon=apple_silicon, cache_folder=cache_folder)
         else:
             self.spark = spark
 
@@ -55,8 +63,12 @@ class SentimentExtract:
 
         # 2. Sentence Encoder
         logging.info(f"Loading sentence encoder for model: {self.encoder_name}")
+        if self.cache_folder:
+            logging.info(f"Using cache folder: {self.cache_folder}")
         try:
-            sentence_encoder = UniversalSentenceEncoder.pretrained(name=self.encoder_name, lang="en") \
+            sentence_encoder = UniversalSentenceEncoder.pretrained(
+                name=self.encoder_name, 
+                lang="en") \
                 .setInputCols(["document"]) \
                 .setOutputCol("sentence_embeddings")
         except Exception as e:
@@ -66,7 +78,9 @@ class SentimentExtract:
         # 3. Sentiment DL Model
         logging.info(f"Loading sentiment DL model for model: {self.model_name}")
         try:
-            sentiment_dl_model = SentimentDLModel.pretrained(name=self.model_name, lang="en") \
+            sentiment_dl_model = SentimentDLModel.pretrained(
+                name=self.model_name, 
+                lang="en") \
                 .setInputCols(["sentence_embeddings"]) \
                 .setOutputCol("sentiment")
         except Exception as e:

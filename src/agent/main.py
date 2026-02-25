@@ -1,4 +1,9 @@
-"""Refactored agent using shared utilities"""
+"""
+DEPRECATED: This module has been integrated into the unified API server.
+Please use src/api/server.py instead.
+
+This file is kept for backward compatibility but will redirect to the unified API.
+"""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,13 +14,21 @@ from common.storage import RedisClientManager
 from .config import AgentConfig
 from .core.sentiment_extract import SentimentExtract
 from .routers import feature_router, sentiment_router
+from pathlib import Path
 
 # Setup logging
 setup_logging(level="INFO")
 logger = get_logger(__name__)
 
+logger.warning("⚠️  DEPRECATED: agent/main.py is deprecated. Use api/server.py for the unified API service.")
+
 # Load configuration
 config = AgentConfig()
+
+# Ensure SparkNLP cache directory exists
+cache_path = Path(config.sparknlp_cache_folder)
+cache_path.mkdir(parents=True, exist_ok=True)
+logger.info(f"SparkNLP cache directory: {config.sparknlp_cache_folder}")
 
 
 @asynccontextmanager
@@ -33,7 +46,8 @@ async def lifespan(app: FastAPI):
         model_name=config.sentiment_model_name,
         encoder_name=config.encoder_name,
         gpu=config.use_gpu,
-        apple_silicon=config.is_apple_silicon
+        apple_silicon=config.is_apple_silicon,
+        cache_folder=config.sparknlp_cache_folder
     )
     logger.info("Sentiment service initialized")
     
@@ -78,11 +92,33 @@ app.include_router(
 
 
 def main():
-    """Main entry point"""
+    """
+    Main entry point - DEPRECATED
+    
+    This standalone agent service has been integrated into the unified API server.
+    Please use: python -m api.server
+    """
+    logger.warning("=" * 80)
+    logger.warning("⚠️  DEPRECATION WARNING")
+    logger.warning("=" * 80)
+    logger.warning("The standalone agent service (agent/main.py) is deprecated.")
+    logger.warning("All agent endpoints have been integrated into the unified API server.")
+    logger.warning("")
+    logger.warning("Please use the unified API server instead:")
+    logger.warning("  python -m api.server")
+    logger.warning("")
+    logger.warning("Or if running from main.py:")
+    logger.warning("  python main.py")
+    logger.warning("=" * 80)
+    
+    # Still run the service for backward compatibility
+    logger.info("Starting deprecated agent service on port 8001...")
+    logger.info("Note: The unified API server runs on port 8000")
+    
     uvicorn.run(
-        "main_refactored:app",
+        "agent.main:app",
         host=config.api_host,
-        port=config.api_port,
+        port=8001,  # Changed to avoid conflict with unified API
         reload=config.reload,
         workers=config.workers
     )
