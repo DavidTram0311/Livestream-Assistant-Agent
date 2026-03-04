@@ -190,7 +190,7 @@ services:
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       # Uses kafka-1 for cluster mode, kafka-single for dev mode
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka-1:9094,kafka-2:9094,kafka-3:9094}
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     restart: unless-stopped
     networks:
@@ -208,14 +208,18 @@ services:
       - "8080:8080"
     restart: always
     environment:
-      KAFKA_CLUSTERS_0_NAME: ${KAFKA_CLUSTER_NAME:-livestream-cluster}
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka-1:9094,kafka-2:9094,kafka-3:9094}
+      KAFKA_CLUSTERS_0_NAME: livestream-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
       KAFKA_CLUSTERS_0_SCHEMA_REGISTRY_URL: http://schema-registry:8081
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
-      - schema-registry
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     networks:
       - mlops-k6-network
 
@@ -311,21 +315,29 @@ services:
     depends_on:
       cdc-postgresql:
         condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "-X", "GET", "http://localhost:8083/connectors"]
-      start_period: 20s
+      start_period: 30s
       interval: 10s
       timeout: 5s
       retries: 5
     environment:
-      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka-1:9094,kafka-2:9094,kafka-3:9094}
+      BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
       GROUP_ID: 1
       CONFIG_STORAGE_TOPIC: connect-configs
       OFFSET_STORAGE_TOPIC: connect-offsets
       STATUS_STORAGE_TOPIC: connect-status
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-3}
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-3}
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-3}
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
       KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
       VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
       CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
