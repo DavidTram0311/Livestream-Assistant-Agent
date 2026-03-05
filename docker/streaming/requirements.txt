@@ -1,0 +1,18 @@
+# Streaming Enrichment Service Dependencies
+
+# Configuration
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Kafka
+confluent-kafka>=2.3.0
+
+# Avro serialization (for Schema Registry)
+fastavro>=1.9.0
+
+# HTTP Client
+httpx>=0.25.0
+
+# Logging (if using custom logging from common)
+# These should match the main project requirements

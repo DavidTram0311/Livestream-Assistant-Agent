@@ -5,6 +5,7 @@
 #   docker compose --profile dev up -d           # Start minimal dev stack (single Kafka + Redis)
 #   docker compose --profile cdc up -d           # Start CDC pipeline
 #   docker compose --profile agent up -d         # Start agent service
+#   docker compose --profile streaming up -d     # Start streaming pipeline (ksqlDB + enrichment)
 
 services:
   # ============================================
@@ -418,6 +419,107 @@ services:
     depends_on:
       schema-registry:
         condition: service_healthy
+    networks:
+      - mlops-k6-network
+
+  # ============================================
+  # KSQLDB SERVER
+  # Profile: streaming, full
+  # ============================================
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:0.29.0
+    platform: linux/amd64
+    container_name: ksqldb-server
+    hostname: ksqldb-server
+    profiles: ["streaming", "full"]
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+        required: false
+      kafka-2:
+        condition: service_healthy
+        required: false
+      kafka-3:
+        condition: service_healthy
+        required: false
+      schema-registry:
+        condition: service_healthy
+        required: false
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      KSQL_KSQL_SERVICE_ID: livestream-ksql
+      KSQL_KSQL_STREAMS_REPLICATION_FACTOR: 3
+      KSQL_KSQL_INTERNAL_TOPIC_REPLICAS: 3
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8088/info"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - mlops-k6-network
+
+  # ============================================
+  # KSQLDB CLI (for interactive queries)
+  # Profile: streaming
+  # ============================================
+  ksqldb-cli:
+    image: confluentinc/ksqldb-cli:0.29.0
+    platform: linux/amd64
+    container_name: ksqldb-cli
+    profiles: ["streaming-cli"]
+    depends_on:
+      ksqldb-server:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    tty: true
+    networks:
+      - mlops-k6-network
+
+  # ============================================
+  # STREAMING ENRICHMENT SERVICE (Python)
+  # Profile: streaming, full
+  # ============================================
+  # Note: This service requires the API server (main.py) to be running.
+  # When running locally: API_BASE_URL should point to host.docker.internal:8000
+  # When running in Docker: API_BASE_URL should point to the API service container
+  streaming-enrichment:
+    container_name: streaming-enrichment
+    profiles: ["streaming", "full"]
+    build:
+      context: .
+      dockerfile: ./docker/streaming/Dockerfile
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+        required: false
+      kafka-2:
+        condition: service_healthy
+        required: false
+      kafka-3:
+        condition: service_healthy
+        required: false
+    env_file:
+      - .env.docker
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
+      KAFKA_CONSUMER_GROUP_ID: streaming-enrichment-group
+      # Use host.docker.internal to access API running on host machine (via main.py)
+      # Change to http://livestream-agent:8000 if running API in Docker
+      API_BASE_URL: ${STREAMING_API_BASE_URL:-http://host.docker.internal:8000}
+      INPUT_TOPIC: tracking_postgres_cdc.public.comment_events
+      OUTPUT_TOPIC: streaming.enriched_events
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     networks:
       - mlops-k6-network
 
