@@ -3,7 +3,7 @@ import httpx
 import asyncio
 from typing import Optional, Tuple
 from src.common.logging import get_logger
-from src.streaming.config import StreamingConfig
+from src.common.config import StreamingConfig
 from src.streaming.models import (
     GenderAPIResponse,
     SentimentAPIRequest,

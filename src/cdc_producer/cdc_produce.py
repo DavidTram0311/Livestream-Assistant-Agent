@@ -105,6 +105,98 @@ def produce_event(config: CDCProducerConfig):
         logger.info(f"Total processed: {total_processed} records")
 
 
+def produce_event_timed(config: CDCProducerConfig, time_window: int) -> int:
+    """
+    Produce events from parquet file to PostgreSQL for a specified time window.
+    
+    Args:
+        config: CDCProducerConfig instance
+        time_window: Duration in seconds to produce events
+        
+    Returns:
+        Total number of records processed
+    """
+    base_dir = Path(__file__).parent
+    parquet_path = config.get_absolute_parquet_path(str(base_dir))
+    
+    logger.info(f"Parquet path: {parquet_path}")
+    logger.info(f"Time window: {time_window} seconds")
+    
+    # Initialize PostgreSQL client using shared utility
+    logger.info("Connecting to PostgreSQL Client")
+    pg_client = PostgresClient(config)
+    logger.info("PostgreSQL Client connected successfully")
+    
+    # Initialize Parquet Reader
+    logger.info(f"Reading parquet file: {parquet_path}")
+    reader = ParquetBatchReader(parquet_path, batch_size=config.batch_size)
+    
+    # Produce events to PostgreSQL Database
+    logger.info(f"Producing events to PostgreSQL Database for {time_window} seconds... 🔥")
+    
+    total_processed = 0
+    start_time = time.time()
+    end_time = start_time + time_window
+    
+    try:
+        with pg_client.get_session() as session:
+            for batch_df in reader.iter_batches():
+                if time.time() >= end_time:
+                    logger.info(f"Time window of {time_window} seconds reached, stopping production")
+                    break
+                    
+                records = []
+                
+                logger.info(f"Batch length: {len(batch_df)}")
+                
+                for index, row in batch_df.iterrows():
+                    if time.time() >= end_time:
+                        break
+                        
+                    random_stop = random.randint(1, config.batch_size)
+                    
+                    record = format_event({
+                        "user_id": row["reviewerID"],
+                        "comments": row["reviewText"]
+                    })
+                    records.append(record)
+                    total_processed += 1
+                    
+                    if random_stop == index:
+                        break
+                
+                if not records:
+                    break
+                    
+                # Bulk insert
+                try:
+                    session.bulk_save_objects(records)
+                    session.commit()
+                    logger.info(f"Processed {len(records)} records")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"Failed to commit batch to PostgreSQL: {e}")
+                    raise
+                
+                # Random sleep between batches (shorter for timed production)
+                remaining_time = end_time - time.time()
+                if remaining_time > 0:
+                    sleep_time = min(random.uniform(1, 5), remaining_time)
+                    time.sleep(sleep_time)
+    
+    except Exception as e:
+        logger.error(f"Error producing events to PostgreSQL Database: {e}")
+        raise
+    
+    finally:
+        pg_client.close()
+        elapsed = time.time() - start_time
+        logger.info("PostgreSQL Client disconnected successfully")
+        logger.info(f"Total processed: {total_processed} records in {elapsed:.2f} seconds")
+    
+    return total_processed
+
+
 def main():
     """Main entry point"""
     args = parser.parse_args()

@@ -1,10 +1,10 @@
-"""CDC Producer API Server"""
+"""Feature & Sentiment API Server"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 from src.common.logging import setup_logging, get_logger
-from src.api.routers import cdc_router, feature_router, sentiment_router
+from src.api.routers import feature_router, sentiment_router
 from contextlib import asynccontextmanager
 from src.common.storage import RedisClientManager
 from src.agent.core.sentiment_extract import SentimentExtract
@@ -58,8 +58,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="API Service",
-    description="API for the main application",
+    title="Feature & Sentiment API Service",
+    description="API service for feature extraction and sentiment analysis",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -80,7 +80,7 @@ def root():
     return JSONResponse(
         status_code=200,
         content={
-            "service": "API Service",
+            "service": "Feature & Sentiment API Service",
             "version": "1.0.0",
             "status": "running"
         }
@@ -95,13 +95,6 @@ def health():
         content={"status": "healthy"}
     )
 
-
-# Include CDC router
-app.include_router(
-    cdc_router,
-    prefix="/api/cdc",
-    tags=["cdc"],
-)
 
 # Include Feature Extraction router
 app.include_router(
@@ -120,7 +113,7 @@ app.include_router(
 
 def main():
     """Main entry point"""
-    logger.info("Starting API Service...")
+    logger.info("Starting Feature & Sentiment API Service...")
     uvicorn.run(
         "api.server:app",
         host="0.0.0.0",

@@ -3,7 +3,7 @@ name: Streaming Aggregation Feature
 overview: Hybrid architecture using Python for CDC event enrichment (HTTP API calls) and ksqlDB for 5-minute windowed aggregation, producing statistics for LLM consumption.
 todos:
   - id: config
-    content: Create streaming configuration (src/streaming/config.py) with Kafka, API settings
+    content: Create streaming configuration (src/common/config/streaming_config.py) with Kafka, API settings
     status: pending
   - id: models
     content: Define Pydantic models for CDC events and enriched events
@@ -128,7 +128,6 @@ SQL-based 5-minute tumbling window aggregation on enriched events.
 ```
 src/streaming/
 ├── main.py                    # Python enrichment service entry point
-├── config.py                  # Configuration (Kafka, API endpoints)
 ├── models.py                  # Pydantic models
 ├── enrichment/
 │   ├── __init__.py
@@ -138,6 +137,9 @@ src/streaming/
     ├── 01_create_streams.sql  # Create source stream from enriched topic
     ├── 02_gender_agg.sql      # Gender aggregation query
     └── 03_sentiment_agg.sql   # Sentiment aggregation query
+
+src/common/config/
+└── streaming_config.py        # Configuration (Kafka, API endpoints)
 ```
 
 ### Key Components

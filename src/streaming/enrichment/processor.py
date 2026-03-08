@@ -10,7 +10,7 @@ from confluent_kafka.admin import AdminClient, NewTopic
 import httpx
 import fastavro
 from src.common.logging import get_logger
-from src.streaming.config import StreamingConfig
+from src.common.config import StreamingConfig
 from src.streaming.models import CDCEvent, EnrichedEvent, DebeziumEnvelope
 from src.streaming.enrichment.client import EnrichmentClient
 

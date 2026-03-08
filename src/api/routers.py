@@ -4,10 +4,12 @@ from fastapi.responses import JSONResponse
 from pathlib import Path
 from src.common.logging import get_logger
 from src.cdc_producer.config import CDCProducerConfig
-from src.cdc_producer.cdc_produce import produce_event
+from src.cdc_producer.cdc_produce import produce_event, produce_event_timed
 from src.api.models import (
     ProduceEventRequest, 
-    ProduceEventResponse, 
+    ProduceEventResponse,
+    ProduceEventTimedRequest,
+    ProduceEventTimedResponse,
     SentimentRequest, 
     SentimentResponse,
     GenderResponse
@@ -115,6 +117,79 @@ async def produce_cdc_events_sync(request: ProduceEventRequest):
         raise HTTPException(
             status_code=500,
             detail=f"CDC event production failed: {str(e)}"
+        )
+
+
+@cdc_router.post("/produce/timed", response_model=ProduceEventTimedResponse)
+async def produce_cdc_events_timed(
+    request: ProduceEventTimedRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Produce CDC events for a specified time window (background).
+    
+    Args:
+        request: ProduceEventTimedRequest containing batch_size and time_window
+        background_tasks: FastAPI background tasks
+        
+    Returns:
+        ProduceEventTimedResponse with status and configuration
+    """
+    try:
+        config = CDCProducerConfig()
+        config.batch_size = request.batch_size
+        
+        logger.info(f"Starting timed CDC event production with batch_size={request.batch_size}, time_window={request.time_window}s")
+        
+        background_tasks.add_task(produce_event_timed, config, request.time_window)
+        
+        return ProduceEventTimedResponse(
+            status="success",
+            message=f"CDC event production started in background for {request.time_window} seconds",
+            batch_size=request.batch_size,
+            time_window=request.time_window
+        )
+        
+    except Exception as e:
+        logger.error(f"Error starting timed CDC event production: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start timed CDC event production: {str(e)}"
+        )
+
+
+@cdc_router.post("/produce/timed/sync", response_model=ProduceEventTimedResponse)
+async def produce_cdc_events_timed_sync(request: ProduceEventTimedRequest):
+    """
+    Produce CDC events for a specified time window synchronously (blocking).
+    
+    Args:
+        request: ProduceEventTimedRequest containing batch_size and time_window
+        
+    Returns:
+        ProduceEventTimedResponse with status, configuration, and total records processed
+    """
+    try:
+        config = CDCProducerConfig()
+        config.batch_size = request.batch_size
+        
+        logger.info(f"Starting synchronous timed CDC event production with batch_size={request.batch_size}, time_window={request.time_window}s")
+        
+        total_records = produce_event_timed(config, request.time_window)
+        
+        return ProduceEventTimedResponse(
+            status="success",
+            message=f"CDC event production completed after {request.time_window} seconds",
+            batch_size=request.batch_size,
+            time_window=request.time_window,
+            total_records_processed=total_records
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in synchronous timed CDC event production: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Timed CDC event production failed: {str(e)}"
         )
 
 

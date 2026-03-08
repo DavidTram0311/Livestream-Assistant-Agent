@@ -9,7 +9,7 @@ This module provides a Kafka-based streaming pipeline that:
 The enriched events are then processed by ksqlDB for 5-minute windowed aggregation,
 producing statistics for LLM consumption.
 """
-from .config import StreamingConfig
+from src.common.config import StreamingConfig
 from .models import CDCEvent, EnrichedEvent, DebeziumEnvelope
 
 __all__ = [

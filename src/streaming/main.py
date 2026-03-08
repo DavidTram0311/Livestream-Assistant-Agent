@@ -12,7 +12,7 @@ import asyncio
 import signal
 import sys
 from src.common.logging import setup_logging, get_logger
-from src.streaming.config import StreamingConfig
+from src.common.config import StreamingConfig
 from src.streaming.enrichment.processor import EnrichmentProcessor
 
 setup_logging(level="INFO")

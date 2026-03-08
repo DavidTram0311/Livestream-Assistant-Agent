@@ -244,36 +244,6 @@ services:
       - mlops-k6-network
 
   # ============================================
-  # AGENT (FastAPI + Spark NLP)
-  # Profile: agent, full
-  # ============================================
-  livestream-agent:
-    container_name: livestream-agent
-    profiles: ["agent"]
-    build:
-      context: .
-      dockerfile: ./docker/agent/Dockerfile
-    env_file:
-      - .env.docker
-    environment:
-      - IS_APPLE_SILICON=${IS_APPLE_SILICON:-false}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - API_PORT=8000
-    ports:
-      - "8000:8000"
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src/agent/data:/app/data
-      - ./.ivy2:/root/.ivy2
-      - ./.m2:/root/.m2
-      - ~/cache_pretrained:/root/cache_pretrained
-    networks:
-      - mlops-k6-network
-
-  # ============================================
   # CDC POSTGRESQL (Source Database)
   # Profile: cdc, full
   # ============================================
@@ -400,27 +370,6 @@ services:
     networks:
       - mlops-k6-network
 
-  # ============================================
-  # KAFKA PRODUCER
-  # Profile: producer, full
-  # ============================================
-  kafka-producer:
-    container_name: kafka-producer
-    profiles: ["producer"]
-    build:
-      context: .
-      dockerfile: ./docker/producer/Dockerfile
-    env_file:
-      - .env.docker
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KAFKA_OUTPUT_TOPICS: tracking.user_comments
-    depends_on:
-      schema-registry:
-        condition: service_healthy
-    networks:
-      - mlops-k6-network
 
   # ============================================
   # KSQLDB SERVER
@@ -431,7 +380,7 @@ services:
     platform: linux/amd64
     container_name: ksqldb-server
     hostname: ksqldb-server
-    profiles: ["streaming", "full"]
+    profiles: ["streaming"]
     depends_on:
       kafka-1:
         condition: service_healthy
@@ -492,7 +441,7 @@ services:
   # When running in Docker: API_BASE_URL should point to the API service container
   streaming-enrichment:
     container_name: streaming-enrichment
-    profiles: ["streaming", "full"]
+    profiles: ["streaming"]
     build:
       context: .
       dockerfile: ./docker/streaming/Dockerfile
@@ -524,30 +473,42 @@ services:
       - mlops-k6-network
 
   # ============================================
-  # DATA WAREHOUSE (PostgreSQL)
-  # Profile: dwh, full
+  # LLM INSIGHT EXTRACTION SERVICE (Python)
+  # Profile: streaming, full
   # ============================================
-  postgres-dwh:
-    image: postgres:15-alpine
-    container_name: postgres-dwh
-    profiles: ["dwh"]
+  # Consumes aggregated stats from ksqlDB and generates insights using OpenAI
+  streaming-llm-insight:
+    container_name: streaming-llm-insight
+    profiles: ["streaming"]
+    build:
+      context: .
+      dockerfile: ./docker/streaming-llm/Dockerfile
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+        required: false
+      kafka-2:
+        condition: service_healthy
+        required: false
+      kafka-3:
+        condition: service_healthy
+        required: false
+      ksqldb-server:
+        condition: service_healthy
+        required: false
+    env_file:
+      - .env.docker
     environment:
-      POSTGRES_DB: ${DWH_POSTGRES_DB:-dwh}
-      POSTGRES_USER: ${DWH_POSTGRES_USER:-dwh}
-      POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD:-dwh}
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-dwh-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DWH_POSTGRES_USER:-dwh} -d ${DWH_POSTGRES_DB:-dwh}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9094,kafka-2:9094,kafka-3:9094
+      LLM_CONSUMER_GROUP_ID: llm-insight-group
+      LLM_COMBINED_STATS_TOPIC: streaming.combined_stats
+      LLM_OUTPUT_TOPIC: streaming.llm_insights
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
     restart: unless-stopped
     networks:
       - mlops-k6-network
+
 
 # ============================================
 # VOLUMES

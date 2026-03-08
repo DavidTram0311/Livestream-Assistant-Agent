@@ -3,7 +3,12 @@ import uvicorn
 
 
 def main():
-    """Run the unified API server with CDC Producer, Feature Extraction, and Sentiment Analysis"""
+    """
+    Run the Feature & Sentiment API server on port 8000.
+    
+    Note: CDC Producer endpoints now run separately via main_cdc.py on port 8001.
+    To start the CDC service, run: python main_cdc.py
+    """
     uvicorn.run(
         "src.api.server:app",
         host="0.0.0.0",

@@ -1,7 +1,7 @@
 """Streaming service configuration"""
 import os
 from pydantic import Field, field_validator
-from src.common.config.base import BaseConfig
+from .base import BaseConfig
 
 
 class StreamingConfig(BaseConfig):

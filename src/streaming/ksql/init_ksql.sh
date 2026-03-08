@@ -35,10 +35,13 @@ execute_ksql() {
     echo "Executing: ${description}"
     echo "----------------------------------------"
     
+    # Escape backslashes and quotes for JSON
+    local escaped_statement=$(echo "${statement}" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+    
     response=$(curl -s -X POST "${KSQL_SERVER}/ksql" \
         -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
         -d "{
-            \"ksql\": \"${statement}\",
+            \"ksql\": \"${escaped_statement}\",
             \"streamsProperties\": {}
         }")
     
@@ -48,18 +51,13 @@ execute_ksql() {
 # Execute SQL files in order
 echo ""
 echo "Creating enriched_events stream..."
-STREAM_SQL=$(cat "${SCRIPT_DIR}/01_create_streams.sql" | tr '\n' ' ' | sed 's/--[^;]*//g')
+STREAM_SQL=$(grep -v '^--' "${SCRIPT_DIR}/01_create_streams.sql" | tr '\n' ' ')
 execute_ksql "${STREAM_SQL}" "Create enriched_events stream"
 
 echo ""
-echo "Creating gender_stats table..."
-GENDER_SQL=$(cat "${SCRIPT_DIR}/02_gender_agg.sql" | tr '\n' ' ' | sed 's/--[^;]*//g')
-execute_ksql "${GENDER_SQL}" "Create gender_stats aggregation table"
-
-echo ""
-echo "Creating sentiment_stats table..."
-SENTIMENT_SQL=$(cat "${SCRIPT_DIR}/03_sentiment_agg.sql" | tr '\n' ' ' | sed 's/--[^;]*//g')
-execute_ksql "${SENTIMENT_SQL}" "Create sentiment_stats aggregation table"
+echo "Creating combined_stats table..."
+COMBINED_SQL=$(grep -v '^--' "${SCRIPT_DIR}/02_combined_agg.sql" | tr '\n' ' ')
+execute_ksql "${COMBINED_SQL}" "Create combined_stats aggregation table"
 
 echo ""
 echo "============================================"
