@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: Gotham, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .slide-title {
+    @apply font-title text-5xl md:text-6xl lg:text-7xl font-bold text-slide-text mb-6;
+  }
+
+  .slide-subtitle {
+    @apply font-title text-3xl md:text-4xl lg:text-5xl font-semibold text-slide-text mb-4;
+  }
+
+  .slide-heading {
+    @apply font-title text-2xl md:text-3xl lg:text-4xl font-semibold text-slide-text mb-3;
+  }
+
+  .slide-body {
+    @apply font-body text-lg md:text-xl lg:text-2xl text-slide-text leading-relaxed;
+  }
+
+  .slide-small {
+    @apply font-body text-base md:text-lg lg:text-xl text-slide-text;
+  }
+
+  .slide-code {
+    @apply font-mono text-sm md:text-base lg:text-lg bg-slate-800 text-green-400 p-4 rounded-lg overflow-x-auto;
+  }
+
+  .bullet-list {
+    @apply space-y-3 slide-body;
+  }
+
+  .bullet-list li {
+    @apply flex items-start gap-3;
+  }
+
+  .bullet-list li::before {
+    content: "•";
+    @apply text-slide-accent font-bold text-2xl leading-none mt-1;
+  }
+
+  .numbered-list {
+    @apply space-y-3 slide-body;
+    counter-reset: item;
+  }
+
+  .numbered-list li {
+    @apply flex items-start gap-3;
+    counter-increment: item;
+  }
+
+  .numbered-list li::before {
+    content: counter(item, upper-roman) ".";
+    @apply text-slide-accent font-bold min-w-[2rem];
+  }
+
+  .concept-card {
+    @apply bg-white/50 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-slide-text/10;
+  }
+
+  .flow-arrow {
+    @apply text-slide-accent text-3xl font-bold;
+  }
+}
+
+.slide-indicator {
+  @apply fixed bottom-6 right-6 font-body text-slide-text/60 text-lg;
+}

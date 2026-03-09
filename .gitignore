@@ -4,8 +4,13 @@
 .env.*.local
 amazon_metadata_2014/
 *.jsonl
-*.json
 *.csv
+
+# Ignore specific JSON files, but not package.json/tsconfig.json
+data/**/*.json
+!slides/package.json
+!slides/package-lock.json
+!slides/tsconfig.json
 
 __pycache__/
 
@@ -18,3 +23,8 @@ data_preparation/
 data/
 
 .ivy2/
+
+slides/node_modules/
+
+slides/.next
+.next/
